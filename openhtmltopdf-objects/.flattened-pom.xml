@@ -5,11 +5,11 @@
   <parent>
     <groupId>io.github.rgquiet.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf</artifactId>
-    <version>1.0.11</version>
+    <version>1.0.12</version>
   </parent>
   <groupId>io.github.rgquiet.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf-objects</artifactId>
-  <version>1.0.11</version>
+  <version>1.0.12</version>
   <name>Openhtmltopdf PDF Rendering (Apache PDF-BOX 2)</name>
   <description>Openhtmltopdf is a CSS 2.1 renderer written in Java. This artifact adds some basic object-tag implementation for the PDF output. Some of
 		this also works with the Java2D output, but the PDFOut is required.</description>

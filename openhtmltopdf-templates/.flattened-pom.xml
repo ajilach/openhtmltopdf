@@ -5,11 +5,11 @@
   <parent>
     <groupId>io.github.rgquiet.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf</artifactId>
-    <version>1.0.11</version>
+    <version>1.0.12</version>
   </parent>
   <groupId>io.github.rgquiet.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf-templates</artifactId>
-  <version>1.0.11</version>
+  <version>1.0.12</version>
   <name>Openhtmltopdf Templates</name>
   <description>PDF templates and website generation for Openhtmltopdf. It is not deployed with a release.</description>
   <licenses>
