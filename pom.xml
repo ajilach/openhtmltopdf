@@ -12,7 +12,7 @@
         Open-HTML-to-PDF is a fork of Flying-saucer with additional features.
     </description>
     <properties>
-        <revision>1.0.11</revision>
+        <revision>1.0.12</revision>
         <open.batik.version>1.14</open.batik.version>
         <!-- Please keep xmlgraphics-commons up to date with batik. -->
         <open.xmlgraphics.commons.version>2.6</open.xmlgraphics.commons.version>
