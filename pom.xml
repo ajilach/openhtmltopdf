@@ -4,20 +4,44 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.rgquiet.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf</artifactId>
-    <version>1.0.11</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>openhtmltopdf</name>
     <description>
         Open-HTML-to-PDF is a HTML and CSS renderer written in Java. It supports Java2D and PDF output.
         Open-HTML-to-PDF is a fork of Flying-saucer with additional features.
     </description>
-    <url>https://github.com/ajilach/openhtmltopdf</url>
+    <properties>
+        <revision>1.0.11</revision>
+        <open.batik.version>1.14</open.batik.version>
+        <!-- Please keep xmlgraphics-commons up to date with batik. -->
+        <open.xmlgraphics.commons.version>2.6</open.xmlgraphics.commons.version>
+        <!-- NOTE: Rhino is an optional dependency of Batik-Bridge.
+        This version should match the version specified by Batik-Bridge. -->
+        <open.rhino.version>1.7.13</open.rhino.version>
+        <open.junit4.version>4.13.1</open.junit4.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <licenses>
         <license>
             <name>GNU Lesser General Public License (LGPL), version 2.1 or later</name>
             <url>http://www.gnu.org/licenses/lgpl.html</url>
         </license>
     </licenses>
+    <url>https://github.com/ajilach/openhtmltopdf</url>
+    <scm>
+        <connection>scm:git:ssh://git@github.com:ajilach/openhtmltopdf.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:ajilach/openhtmltopdf.git</developerConnection>
+        <url>https://github.com/ajilach/openhtmltopdf.git</url>
+        <tag>HEAD</tag>
+    </scm>
+    <developers>
+        <developer>
+            <id>rgquiet</id>
+            <name>Robin Güdel</name>
+            <email>robin.guedel@ajila.com</email>
+        </developer>
+    </developers>
     <modules>
         <module>openhtmltopdf-core</module>
         <module>openhtmltopdf-slf4j</module>
@@ -32,19 +56,6 @@
         <module>openhtmltopdf-pdfa-testing</module>
         <module>openhtmltopdf-templates</module>
     </modules>
-    <scm>
-        <connection>scm:git:ssh://git@github.com:ajilach/openhtmltopdf.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com:ajilach/openhtmltopdf.git</developerConnection>
-        <url>https://github.com/ajilach/openhtmltopdf.git</url>
-        <tag>HEAD</tag>
-    </scm>
-    <developers>
-        <developer>
-            <id>rgquiet</id>
-            <name>Robin Güdel</name>
-            <email>robin.guedel@ajila.com</email>
-        </developer>
-    </developers>
     <profiles>
         <profile>
             <id>doclint-java8-disable</id>
@@ -188,16 +199,31 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
-    <properties>
-        <open.batik.version>1.14</open.batik.version>
-        <!-- Please keep xmlgraphics-commons up to date with batik. -->
-        <open.xmlgraphics.commons.version>2.6</open.xmlgraphics.commons.version>
-        <!-- NOTE: Rhino is an optional dependency of Batik-Bridge.
-        This version should match the version specified by Batik-Bridge. -->
-        <open.rhino.version>1.7.13</open.rhino.version>
-        <open.junit4.version>4.13.1</open.junit4.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 </project>

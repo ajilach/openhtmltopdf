@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.github.rgquiet.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf</artifactId>
-    <version>1.0.11</version>
+    <version>${revision}</version>
   </parent>
 
   <artifactId>openhtmltopdf-java2d</artifactId>
