@@ -1,5 +1,3 @@
-[![build](https://github.com/danfickle/openhtmltopdf/workflows/build/badge.svg)](https://github.com/danfickle/openhtmltopdf/actions?query=workflow%3Abuild)
-
 # OPEN HTML TO PDF
 
 ![PDF screenshot of OpenHTMLtoPDF](screenshot.png)
