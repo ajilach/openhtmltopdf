@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.openhtmltopdf</groupId>
-    <artifactId>openhtmltopdf-parent</artifactId>
-    <version>1.0.10</version>
+    <groupId>io.github.rgquiet.openhtmltopdf</groupId>
+    <artifactId>openhtmltopdf</artifactId>
+    <version>1.0.11</version>
     <packaging>pom</packaging>
-    <name>Openhtmltopdf</name>
+    <name>openhtmltopdf</name>
     <description>
         Open-HTML-to-PDF is a HTML and CSS renderer written in Java. It supports Java2D and PDF output.
         Open-HTML-to-PDF is a fork of Flying-saucer with additional features.
@@ -32,38 +32,17 @@
         <module>openhtmltopdf-pdfa-testing</module>
         <module>openhtmltopdf-templates</module>
     </modules>
-    <!-- ToDo: Change that to own credentials -->
     <scm>
-        <connection>scm:git:git://github.com/danfickle/openhtmltopdf.git</connection>
-        <developerConnection>scm:git:https://github.com/danfickle/openhtmltopdf.git</developerConnection>
-        <url>git://github.com/danfickle/openhtmltopdf.git</url>
-        <tag>openhtmltopdf-parent-1.0.10</tag>
+        <connection>scm:git:ssh://git@github.com:ajilach/openhtmltopdf.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:ajilach/openhtmltopdf.git</developerConnection>
+        <url>https://github.com/ajilach/openhtmltopdf.git</url>
+        <tag>HEAD</tag>
     </scm>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
-    </distributionManagement>
     <developers>
         <developer>
-            <id>danfickle</id>
-            <name>Daniel Fickling</name>
-            <email>newtab@gmail.com</email>
-        </developer>
-        <developer>
-            <id>pdoubleya</id>
-            <name>Patrick Wright</name>
-            <email>pdoubleya@gmail.com</email>
-        </developer>
-        <developer>
-            <id>peter.brant</id>
-            <name>Peter Brant</name>
-            <email>peter.brant@gmail.com</email>
+            <id>rgquiet</id>
+            <name>Robin Güdel</name>
+            <email>robin.guedel@ajila.com</email>
         </developer>
     </developers>
     <profiles>
@@ -156,6 +135,16 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.9.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
+                </configuration>
+            </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
                 <configuration>

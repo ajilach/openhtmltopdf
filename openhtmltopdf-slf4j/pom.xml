@@ -4,9 +4,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.openhtmltopdf</groupId>
-    <artifactId>openhtmltopdf-parent</artifactId>
-    <version>1.0.10</version>
+    <groupId>io.github.rgquiet.openhtmltopdf</groupId>
+    <artifactId>openhtmltopdf</artifactId>
+    <version>1.0.11</version>
   </parent>
 
   <artifactId>openhtmltopdf-slf4j</artifactId>
@@ -23,16 +23,6 @@
     </license>
   </licenses>
 
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-    <repository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-    </repository>
-  </distributionManagement>
 
   <profiles>
     <profile>
@@ -79,13 +69,13 @@
     </dependency>
 
     <dependency>
-        <groupId>com.openhtmltopdf</groupId>
+        <groupId>io.github.rgquiet.openhtmltopdf</groupId>
         <artifactId>openhtmltopdf-core</artifactId>
         <version>${project.version}</version>
     </dependency>
 
     <dependency>
-        <groupId>com.openhtmltopdf</groupId>
+        <groupId>io.github.rgquiet.openhtmltopdf</groupId>
         <artifactId>openhtmltopdf-pdfbox</artifactId>
         <version>${project.version}</version>
         <scope>test</scope>
