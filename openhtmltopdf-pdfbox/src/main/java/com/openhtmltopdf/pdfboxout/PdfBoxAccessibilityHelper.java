@@ -996,9 +996,8 @@ public class PdfBoxAccessibilityHelper {
                 if (classAttr != null && !classAttr.isEmpty()) {
                     boolean hasPassthroughClass =
                             classAttr.contains("input-value") ||
+                                    classAttr.contains("input-value") ||
                                     classAttr.contains("input-label") ||
-                                    classAttr.contains("redacto-checkbox-radio-label") ||
-                                    classAttr.contains("redacto-checkbox-radio-label-container") ||
                                     classAttr.contains("redacto-checkbox-radio-option") ||
                                     classAttr.contains("redacto-checkbox-radio-option-value") ||
                                     classAttr.contains("redacto-checkbox-radio-option-symbol-hidden-text") ||
