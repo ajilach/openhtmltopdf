@@ -240,7 +240,7 @@ public class PdfBoxAccessibilityHelper {
             GenericStructualElement child = this;
 
             if (child.children.isEmpty() &&
-                (child.box.getElement() == null || !child.box.getElement().hasAttribute("id"))) {
+                    (child.box.getElement() == null || !child.box.getElement().hasAttribute("id"))) {
                 // There is no point in outputting empty structual elements.
                 // Exception is elements with an id which may be there to
                 // use as a link or bookmark destination.
@@ -248,9 +248,9 @@ public class PdfBoxAccessibilityHelper {
             }
 
             if (child.box instanceof LineBox ||
-                (child.box instanceof InlineLayoutBox &&
-                    child.children.size() == 1 &&
-                    child.box.getParent() instanceof LineBox)) {
+                    (child.box instanceof InlineLayoutBox &&
+                            child.children.size() == 1 &&
+                            child.box.getParent() instanceof LineBox)) {
                 // We skip (don't create structure element) line boxes in the tree.
                 // We also skip the common case of a intermediary InlineLayoutBox between the
                 // LineBox and a single InlineText.
@@ -390,7 +390,7 @@ public class PdfBoxAccessibilityHelper {
             } else if (listStyleType == IdentValue.CIRCLE) {
                 listType = "Circle";
             } else if (listStyleType == IdentValue.DECIMAL ||
-                listStyleType == IdentValue.DECIMAL_LEADING_ZERO) {
+                    listStyleType == IdentValue.DECIMAL_LEADING_ZERO) {
                 listType = "Decimal";
             } else if (listStyleType == IdentValue.UPPER_ROMAN) {
                 listType = "UpperRoman";
@@ -827,8 +827,8 @@ public class PdfBoxAccessibilityHelper {
      */
     public static PDStructureElement getStructualElementForBox(Box targetBox) {
         if (targetBox != null &&
-            targetBox.getAccessibilityObject() != null &&
-            targetBox.getAccessibilityObject() instanceof AbstractStructualElement) {
+                targetBox.getAccessibilityObject() != null &&
+                targetBox.getAccessibilityObject() instanceof AbstractStructualElement) {
 
             return ((AbstractStructualElement) targetBox.getAccessibilityObject()).elem;
         }
@@ -966,14 +966,14 @@ public class PdfBoxAccessibilityHelper {
                 // For replaced elements we will need to create a BBox.
                 // This is done here so we don'thave to hang onto the page height, transform, etc.
                 Rectangle2D rect = PdfBoxFastLinkManager.createTargetArea(
-                    _ctx, box, _pageHeight, _transform, _rootBox, _od);
+                        _ctx, box, _pageHeight, _transform, _rootBox, _od);
 
                 child = new FigureStructualElement();
                 ((FigureStructualElement) child).boundingBox = new PDRectangle(
-                    (float) rect.getMinX(),
-                    (float) rect.getMinY(),
-                    (float) rect.getWidth(),
-                    (float) rect.getHeight());
+                        (float) rect.getMinX(),
+                        (float) rect.getMinY(),
+                        (float) rect.getWidth(),
+                        (float) rect.getHeight());
             }
         }
 
@@ -981,8 +981,8 @@ public class PdfBoxAccessibilityHelper {
 
         if (box != null && isInsideStaticTextParagraph(box)) {
             boolean isStaticTextP = box.getElement() != null &&
-                "p".equals(box.getElement().getTagName()) &&
-                elementHasClass(box.getElement(), "flattenStructureTree");
+                    "p".equals(box.getElement().getTagName()) &&
+                    elementHasClass(box.getElement(), "flattenStructureTree");
 
             if (!isStaticTextP) {
                 child = new PassthroughStructualElement();
@@ -995,15 +995,15 @@ public class PdfBoxAccessibilityHelper {
                 String classAttr = box.getElement().getAttribute("class");
                 if (classAttr != null && !classAttr.isEmpty()) {
                     boolean hasPassthroughClass =
-                        classAttr.contains("input-value") ||
-                            classAttr.contains("input-label") ||
-                            classAttr.contains("redacto-checkbox-radio-label") ||
-                            classAttr.contains("redacto-checkbox-radio-label-container") ||
-                            classAttr.contains("redacto-checkbox-radio-option") ||
-                            classAttr.contains("redacto-checkbox-radio-option-value") ||
-                            classAttr.contains("redacto-checkbox-radio-option-symbol-hidden-text") ||
-                            classAttr.contains("redacto-checkbox-radio-option-symbol-radio") ||
-                            classAttr.contains("redacto-checkbox-radio-option-symbol-checkbox");
+                            classAttr.contains("input-value") ||
+                                    classAttr.contains("input-label") ||
+                                    classAttr.contains("redacto-checkbox-radio-label") ||
+                                    classAttr.contains("redacto-checkbox-radio-label-container") ||
+                                    classAttr.contains("redacto-checkbox-radio-option") ||
+                                    classAttr.contains("redacto-checkbox-radio-option-value") ||
+                                    classAttr.contains("redacto-checkbox-radio-option-symbol-hidden-text") ||
+                                    classAttr.contains("redacto-checkbox-radio-option-symbol-radio") ||
+                                    classAttr.contains("redacto-checkbox-radio-option-symbol-checkbox");
                     if (hasPassthroughClass) {
                         child = new PassthroughStructualElement();
                     }
@@ -1023,8 +1023,8 @@ public class PdfBoxAccessibilityHelper {
         }
 
         if (child == null &&
-            box.getParent() != null &&
-            box.getParent().getAccessibilityObject() instanceof TableStructualElement) {
+                box.getParent() != null &&
+                box.getParent().getAccessibilityObject() instanceof TableStructualElement) {
 
             TableStructualElement table = (TableStructualElement) box.getParent().getAccessibilityObject();
 
@@ -1061,7 +1061,7 @@ public class PdfBoxAccessibilityHelper {
     private void ensureParent(Box box, AbstractTreeItem child) {
         if (child.parent == null) {
             if (child instanceof TableHeadStructualElement ||
-                child instanceof TableFootStructualElement) {
+                    child instanceof TableFootStructualElement) {
                 child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
             } else if (child instanceof TableBodyStructualElement) {
                 child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
@@ -1115,7 +1115,7 @@ public class PdfBoxAccessibilityHelper {
         FigureStructualElement parent = (FigureStructualElement) box.getAccessibilityObject();
 
         if (parent == null ||
-            parent.content != null) {
+                parent.content != null) {
             // This figure structual element already has an image associatted with it.
             // Images continued on subsequent pages will be treated as artifacts.
             return null;
@@ -1198,6 +1198,11 @@ public class PdfBoxAccessibilityHelper {
             case BLOCK:
             case INLINE:
             case INLINE_CHILD_BOX: {
+                /* Start Redacto Change */
+                if (markAsArtifactIfNeeded(box)) {
+                    return TRUE_TOKEN;
+                }
+                /* End Redacto Change */
                 AbstractStructualElement struct = (AbstractStructualElement) box.getAccessibilityObject();
                 if (struct == null) {
                     struct = createStructureItem(type, box);
@@ -1218,9 +1223,9 @@ public class PdfBoxAccessibilityHelper {
                     MarkerData markers = ((BlockBox) box).getMarkerData();
 
                     if (markers == null ||
-                        (markers.getGlyphMarker() == null &&
-                            markers.getTextMarker() == null &&
-                            markers.getImageMarker() == null)) {
+                            (markers.getGlyphMarker() == null &&
+                                    markers.getTextMarker() == null &&
+                                    markers.getImageMarker() == null)) {
                         return FALSE_TOKEN;
                     }
                 }
@@ -1230,14 +1235,8 @@ public class PdfBoxAccessibilityHelper {
                 return TRUE_TOKEN;
             }
             case TEXT: {
-                /* Start Redacto Change: If this is a span with class 'redacto-checkbox-radio-option-symbol', mark as artifact (Layout) and skip structure */
-                if (box.getElement() != null && (
-                    elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol") ||
-                        elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-radio") ||
-                        elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-checkbox")
-                )) {
-                    COSDictionary layout = createLayoutArtifact(box);
-                    _cs.beginMarkedContent(COSName.ARTIFACT, layout);
+                /* Start Redacto Change */
+                if (markAsArtifactIfNeeded(box)) {
                     return TRUE_TOKEN;
                 }
                 /* End Redacto Change */
@@ -1246,6 +1245,11 @@ public class PdfBoxAccessibilityHelper {
                 return TRUE_TOKEN;
             }
             case REPLACED: {
+                /* Start Redacto Change */
+                if (markAsArtifactIfNeeded(box)) {
+                    return TRUE_TOKEN;
+                }
+                /* End Redacto Change */
                 AbstractStructualElement struct = (AbstractStructualElement) box.getAccessibilityObject();
                 if (struct == null) {
                     struct = createStructureItem(type, box);
@@ -1278,7 +1282,7 @@ public class PdfBoxAccessibilityHelper {
         if (value == TRUE_TOKEN) {
             _cs.endMarkedContent();
         } else if (value == FALSE_TOKEN ||
-            value == INSIDE_RUNNING) {
+                value == INSIDE_RUNNING) {
             // do nothing...
         } else if (value == NESTED_RUNNING) {
             _runningLevel--;
@@ -1391,5 +1395,23 @@ public class PdfBoxAccessibilityHelper {
         String needle = " " + cls + " ";
         return haystack.contains(needle);
     }
+
+
+    private boolean markAsArtifactIfNeeded(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        // Applies to both inline spans and replaced elements (e.g. images) carrying these classes.
+        if (elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol") ||
+                elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-radio") ||
+                elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-checkbox")) {
+            COSDictionary layout = createLayoutArtifact(box);
+            _cs.beginMarkedContent(COSName.ARTIFACT, layout);
+            return true;
+        }
+
+        return false;
+    }
+
     /* End Redacto Change */
 }
