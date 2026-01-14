@@ -978,6 +978,16 @@ public class PdfBoxAccessibilityHelper {
         }
 
         /* Start Redacto Change - do not create structure Element for input-value and input-label */
+
+        if (box != null && isInsideStaticTextParagraph(box)) {
+            boolean isStaticTextP = box.getElement() != null &&
+                "p".equals(box.getElement().getTagName()) &&
+                elementHasClass(box.getElement(), "flattenStructureTree");
+
+            if (!isStaticTextP) {
+                child = new PassthroughStructualElement();
+            }
+        }
         if (child == null && box.getElement() != null && !box.isAnonymous()) {
             String htmlTag = box.getElement().getTagName();
             // Apply to common inline/block tags that might carry these classes
@@ -1347,6 +1357,24 @@ public class PdfBoxAccessibilityHelper {
             if (current.getElement() != null) {
                 String tag = current.getElement().getTagName();
                 if ("div".equals(tag) && elementHasClass(current.getElement(), "redacto-checkbox-radio-option")) {
+                    return true;
+                }
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    /*
+     * staticText: If a box is inside a <p class="flattenStructureTree"> ancestor, we want a completely flat tagged structure
+     * underneath that P. I.e. only the outer /P exists; everything inside is emitted as marked content items.
+     */
+    private static boolean isInsideStaticTextParagraph(Box box) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null) {
+                String tag = current.getElement().getTagName();
+                if ("p".equals(tag) && elementHasClass(current.getElement(), "flattenStructureTree")) {
                     return true;
                 }
             }
