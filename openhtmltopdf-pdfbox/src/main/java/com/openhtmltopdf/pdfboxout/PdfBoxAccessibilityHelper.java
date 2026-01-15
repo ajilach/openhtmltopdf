@@ -996,7 +996,6 @@ public class PdfBoxAccessibilityHelper {
                 if (classAttr != null && !classAttr.isEmpty()) {
                     boolean hasPassthroughClass =
                             classAttr.contains("input-value") ||
-                                    classAttr.contains("input-value") ||
                                     classAttr.contains("input-label") ||
                                     classAttr.contains("redacto-checkbox-radio-option") ||
                                     classAttr.contains("redacto-checkbox-radio-option-value") ||
@@ -1186,11 +1185,22 @@ public class PdfBoxAccessibilityHelper {
 
             _runningLevel++;
             return NESTED_RUNNING;
-        } else if (_runningLevel > 0) {
-            // We are in a running artifact.
-            return INSIDE_RUNNING;
         }
 
+        boolean insideRunning = _runningLevel > 0 || hasRunningAncestor(box);
+        /* Start Redacto Change */
+        if (insideRunning && hasTopRightFirstClass(box)) {
+            if (type == StructureType.BACKGROUND || type == StructureType.LIST_MARKER ||
+                    type == StructureType.TEXT || type == StructureType.REPLACED) {
+                COSDictionary artifact = createBackgroundArtifact(type, box);
+                _cs.beginMarkedContent(COSName.ARTIFACT, artifact);
+                return TRUE_TOKEN;
+            }
+            return INSIDE_RUNNING;
+        } else if (insideRunning) {
+            return INSIDE_RUNNING;
+        }
+        /* End Redacto Change */
         switch (type) {
             case LAYER:
             case FLOAT:
@@ -1409,6 +1419,31 @@ public class PdfBoxAccessibilityHelper {
             return true;
         }
 
+        return false;
+    }
+
+    private boolean hasRunningAncestor(Box box) {
+        Box parent = box.getParent();
+        while (parent != null) {
+            if (parent.getStyle() != null && parent.getStyle().isRunning()) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
+    private boolean hasTopRightFirstClass(Box box) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null) {
+                String classAttr = current.getElement().getAttribute("class");
+                if (classAttr != null && classAttr.contains("top-right-first")) {
+                    return true;
+                }
+            }
+            current = current.getParent();
+        }
         return false;
     }
 
