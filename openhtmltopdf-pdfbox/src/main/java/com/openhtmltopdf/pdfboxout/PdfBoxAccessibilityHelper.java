@@ -257,8 +257,20 @@ public class PdfBoxAccessibilityHelper {
                 finishTreeItems(child.children, parent);
             } else {
                 // Redacto: If this box is inside a <div class="redacto-checkbox-radio-option">, never create a DIV in the structure tree.
+                // Instead, wrap the children in a /P element so they stay grouped together.
                 if (isInsideRedactoCheckboxRadioOption(child.box)) {
-                    finishTreeItems(child.children, parent);
+                    GenericStructualElement pWrapper = new GenericStructualElement() {
+                        @Override
+                        String getPdfTag() {
+                            return StandardStructureTypes.P;
+                        }
+                    };
+                    pWrapper.box = null;
+                    pWrapper.page = parent.page;
+                    pWrapper.parent = parent;
+                    pWrapper.createPdfStrucureElement(parent, pWrapper);
+
+                    finishTreeItems(child.children, pWrapper);
                     return;
                 }
 
@@ -753,6 +765,10 @@ public class PdfBoxAccessibilityHelper {
             // Must be a figure (image or replaced, etc).
             FigureStructualElement child = this;
 
+            if (child.content == null) {
+                return;
+            }
+
             child.parentElem = parent.elem;
             child.elem = new PDStructureElement(child.getPdfTag(), child.parentElem);
             child.elem.setParent(child.parentElem);
@@ -943,8 +959,10 @@ public class PdfBoxAccessibilityHelper {
     }
 
     private void ensureAncestorTree(AbstractTreeItem child, Box parent) {
+        boolean createdAny = false;
         // Walk up the ancestor tree making sure they all have accessibility objects.
         while (parent != null && parent.getAccessibilityObject() == null) {
+            createdAny = true;
             AbstractStructualElement parentItem = createStructureItem(null, parent);
             parent.setAccessiblityObject(parentItem);
 
@@ -953,6 +971,17 @@ public class PdfBoxAccessibilityHelper {
             child.parent = parentItem;
             child = parentItem;
             parent = parent.getParent();
+        }
+
+        if (createdAny) {
+            if (parent != null) {
+                AbstractStructualElement ancestor = (AbstractStructualElement) parent.getAccessibilityObject();
+                ancestor.addChild(child);
+                child.parent = ancestor;
+            } else {
+                _root.addChild(child);
+                child.parent = _root;
+            }
         }
     }
 
@@ -1078,12 +1107,16 @@ public class PdfBoxAccessibilityHelper {
     private GenericContentItem createMarkedContentStructureItem(StructureType type, Box box) {
         GenericContentItem current = new GenericContentItem();
 
-        ensureAncestorTree(current, box.getParent());
-
         AbstractStructualElement parent = (AbstractStructualElement) box.getAccessibilityObject();
-        parent.addChild(current);
 
-        current.parent = parent;
+        if (parent != null) {
+            parent.addChild(current);
+            current.parent = parent;
+        } else {
+            ensureAncestorTree(current, box.getParent());
+            ensureParent(box, current);
+        }
+
         current.mcid = _nextMcid;
         current.dict = createMarkedContentDictionary();
         current.page = _page;
@@ -1171,9 +1204,23 @@ public class PdfBoxAccessibilityHelper {
     private static final Token STARTING_RUNNING = new Token();
     private static final Token NESTED_RUNNING = new Token();
 
+
+
+
     public Token startStructure(StructureType type, Box box) {
         // Check for items that appear on every page (fixed, running, page margins).
         if (type == StructureType.RUNNING) {
+            /* Start Redacto Change - treat first page footer as content */
+            if (_pageItemsMap.size() == 1 && !shouldBeArtifactOnFirstPage(box)) {
+                AbstractStructualElement struct = (AbstractStructualElement) box.getAccessibilityObject();
+                if (struct == null) {
+                    struct = createStructureItem(type, box);
+                    setupStructureElement(struct, box);
+                }
+                return FALSE_TOKEN;
+            }
+            /* End Redacto Change */
+
             // Only mark artifact for first level of running element (we might have
             // nested fixed elements).
             if (_runningLevel == 0) {
@@ -1189,6 +1236,14 @@ public class PdfBoxAccessibilityHelper {
 
         boolean insideRunning = _runningLevel > 0 || hasRunningAncestor(box);
         /* Start Redacto Change */
+        if (_pageItemsMap.size() == 1 && hasRunningAncestor(box)) {
+            // If we are on the first page, we want to allow running elements content (like footers) to be structured.
+            // We do this by pretending we are NOT inside a running element.
+            if (!shouldBeArtifactOnFirstPage(box)) {
+                insideRunning = false;
+            }
+        }
+
         if (insideRunning && hasTopRightFirstClass(box)) {
             if (type == StructureType.BACKGROUND || type == StructureType.LIST_MARKER ||
                     type == StructureType.TEXT || type == StructureType.REPLACED) {
@@ -1433,6 +1488,47 @@ public class PdfBoxAccessibilityHelper {
         return false;
     }
 
+    private boolean shouldBeArtifactOnFirstPage(Box box) {
+        if (hasTopLeftFirstOrBottomRightClass(box)) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    private boolean hasTopLeftFirstOrBottomRightClass(Box box) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null) {
+                String classAttr = current.getElement().getAttribute("class");
+                if (classAttr != null && classAttr.contains("top-left-first")) {
+                    return true;
+                }
+            }
+
+            if (current != box && current.getParent() == box) {
+
+            }
+            current = current.getParent();
+        }
+
+
+        return elementHasClassRecursive(box, "top-left-first");
+    }
+
+    private boolean elementHasClassRecursive(Box box, String className) {
+        if (box.getElement() != null && elementHasClass(box.getElement(), className)) {
+            return true;
+        }
+        for (int i = 0; i < box.getChildCount(); i++) {
+            if (elementHasClassRecursive(box.getChild(i), className)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean hasTopRightFirstClass(Box box) {
         Box current = box;
         while (current != null) {
@@ -1446,6 +1542,5 @@ public class PdfBoxAccessibilityHelper {
         }
         return false;
     }
-
     /* End Redacto Change */
 }
