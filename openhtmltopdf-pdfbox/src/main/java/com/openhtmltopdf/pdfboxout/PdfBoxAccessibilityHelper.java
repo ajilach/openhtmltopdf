@@ -257,8 +257,20 @@ public class PdfBoxAccessibilityHelper {
                 finishTreeItems(child.children, parent);
             } else {
                 // Redacto: If this box is inside a <div class="redacto-checkbox-radio-option">, never create a DIV in the structure tree.
+                // Instead, wrap the children in a /P element so they stay grouped together.
                 if (isInsideRedactoCheckboxRadioOption(child.box)) {
-                    finishTreeItems(child.children, parent);
+                    GenericStructualElement pWrapper = new GenericStructualElement() {
+                        @Override
+                        String getPdfTag() {
+                            return StandardStructureTypes.P;
+                        }
+                    };
+                    pWrapper.box = null;
+                    pWrapper.page = parent.page;
+                    pWrapper.parent = parent;
+                    pWrapper.createPdfStrucureElement(parent, pWrapper);
+
+                    finishTreeItems(child.children, pWrapper);
                     return;
                 }
 
@@ -1171,6 +1183,9 @@ public class PdfBoxAccessibilityHelper {
     private static final Token STARTING_RUNNING = new Token();
     private static final Token NESTED_RUNNING = new Token();
 
+
+
+
     public Token startStructure(StructureType type, Box box) {
         // Check for items that appear on every page (fixed, running, page margins).
         if (type == StructureType.RUNNING) {
@@ -1413,7 +1428,8 @@ public class PdfBoxAccessibilityHelper {
         // Applies to both inline spans and replaced elements (e.g. images) carrying these classes.
         if (elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol") ||
                 elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-radio") ||
-                elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-checkbox")) {
+                elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-checkbox") ||
+                elementHasClass(box.getElement(), "pdf-artifact")) {
             COSDictionary layout = createLayoutArtifact(box);
             _cs.beginMarkedContent(COSName.ARTIFACT, layout);
             return true;
@@ -1446,6 +1462,5 @@ public class PdfBoxAccessibilityHelper {
         }
         return false;
     }
-
     /* End Redacto Change */
 }
