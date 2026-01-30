@@ -1468,7 +1468,8 @@ public class PdfBoxAccessibilityHelper {
         // Applies to both inline spans and replaced elements (e.g. images) carrying these classes.
         if (elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol") ||
                 elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-radio") ||
-                elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-checkbox")) {
+                elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-checkbox") ||
+                elementHasClass(box.getElement(), "pdf-artifact")) {
             COSDictionary layout = createLayoutArtifact(box);
             _cs.beginMarkedContent(COSName.ARTIFACT, layout);
             return true;
