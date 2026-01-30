@@ -5,11 +5,11 @@
   <parent>
     <groupId>io.github.rgquiet.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf</artifactId>
-    <version>1.0.12</version>
+    <version>1.0.13</version>
   </parent>
   <groupId>io.github.rgquiet.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf-java2d</artifactId>
-  <version>1.0.12</version>
+  <version>1.0.13</version>
   <name>Openhtmltopdf Image Rendering (Java2D)</name>
   <description>Openhtmltopdf is a CSS 2.1 renderer written in Java. This artifact supports image output with the Java2D API.</description>
   <licenses>

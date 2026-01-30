@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.github.rgquiet.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf</artifactId>
-  <version>1.0.12</version>
+  <version>1.0.13</version>
   <packaging>pom</packaging>
   <name>openhtmltopdf</name>
   <description>Open-HTML-to-PDF is a HTML and CSS renderer written in Java. It supports Java2D and PDF output.
@@ -48,7 +48,7 @@
     <open.batik.version>1.14</open.batik.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <open.rhino.version>1.7.13</open.rhino.version>
-    <revision>1.0.12</revision>
+    <revision>1.0.13</revision>
   </properties>
   <build>
     <pluginManagement>

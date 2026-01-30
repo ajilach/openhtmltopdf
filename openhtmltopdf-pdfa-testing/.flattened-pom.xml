@@ -5,11 +5,11 @@
   <parent>
     <groupId>io.github.rgquiet.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf</artifactId>
-    <version>1.0.12</version>
+    <version>1.0.13</version>
   </parent>
   <groupId>io.github.rgquiet.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf-pdfa-testing</artifactId>
-  <version>1.0.12</version>
+  <version>1.0.13</version>
   <name>Openhtmltopdf PDF/A Testing</name>
   <description>Code to test against the PDF/A standard. It is not deployed with a release and unlike the rest of the project, is licensed under the GPL.</description>
   <licenses>
