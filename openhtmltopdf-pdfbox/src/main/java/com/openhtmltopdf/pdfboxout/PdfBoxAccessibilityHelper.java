@@ -878,10 +878,70 @@ public class PdfBoxAccessibilityHelper {
             root.appendKid(rootElem);
 
             _root.elem = rootElem;
+            relocateHeaderFooterContainerAfterFirstH1(_root.children);
             finishTreeItems(_root.children, _root);
 
             _od.getWriter().getDocumentCatalog().setStructureTreeRoot(root);
         }
+    }
+
+    private void relocateHeaderFooterContainerAfterFirstH1(List<AbstractTreeItem> rootChildren) {
+        AbstractTreeItem containerItem = findAndRemoveHeaderFooterContainer(rootChildren);
+        if (containerItem == null) {
+            return;
+        }
+        if (!insertAfterFirstH1(rootChildren, containerItem)) {
+            rootChildren.add(0, containerItem);
+        }
+    }
+
+    private AbstractTreeItem findAndRemoveHeaderFooterContainer(List<AbstractTreeItem> items) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isHeaderFooterAccessibleContainer(se.box)) {
+                    items.remove(i);
+                    return se;
+                }
+                AbstractTreeItem found = findAndRemoveHeaderFooterContainer(se.children);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean insertAfterFirstH1(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isH1Element(se.box)) {
+                    items.add(i + 1, containerItem);
+                    return true;
+                }
+                if (insertAfterFirstH1(se.children, containerItem)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isHeaderFooterAccessibleContainer(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        return elementHasClass(box.getElement(), "header-footer-accessible-container");
+    }
+
+    private static boolean isH1Element(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        return "h1".equals(box.getElement().getTagName());
     }
 
     public void finishNumberTree() {
