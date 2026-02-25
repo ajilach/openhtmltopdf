@@ -989,17 +989,16 @@ public class PdfBoxAccessibilityHelper {
             }
         }
 
-        /* Start Redacto Change - do not create structure Element for input-value and input-label */
+        if (box != null && isInsideText(box)) {
+            String tagName = box.getElement() != null ? box.getElement().getTagName() : null;
+            boolean isStaticTextContainer = "p".equals(tagName) || "span".equals(tagName) || "li".equals(tagName);
 
-        if (box != null && isInsideStaticTextParagraph(box)) {
-            boolean isStaticTextP = box.getElement() != null &&
-                "p".equals(box.getElement().getTagName()) &&
-                elementHasClass(box.getElement(), "flattenStructureTree");
-
-            if (!isStaticTextP) {
+            if (!isStaticTextContainer) {
                 child = new PassthroughStructualElement();
             }
         }
+        /* Start Redacto Change - do not create structure Element for input-value and input-label */
+
         if (child == null && box.getElement() != null && !box.isAnonymous()) {
             String htmlTag = box.getElement().getTagName();
             // Apply to common inline/block tags that might carry these classes
@@ -1394,15 +1393,14 @@ public class PdfBoxAccessibilityHelper {
     }
 
     /*
-     * staticText: If a box is inside a <p class="flattenStructureTree"> ancestor, we want a completely flat tagged structure
-     * underneath that P. I.e. only the outer /P exists; everything inside is emitted as marked content items.
+     * If a box is inside a text ancestor, we want a completely flat tagged structure
      */
-    private static boolean isInsideStaticTextParagraph(Box box) {
+    private static boolean isInsideText(Box box) {
         Box current = box;
         while (current != null) {
             if (current.getElement() != null) {
                 String tag = current.getElement().getTagName();
-                if ("p".equals(tag) && elementHasClass(current.getElement(), "flattenStructureTree")) {
+                if ("p".equals(tag) || "span".equals(tag) || "li".equals(tag)) {
                     return true;
                 }
             }
