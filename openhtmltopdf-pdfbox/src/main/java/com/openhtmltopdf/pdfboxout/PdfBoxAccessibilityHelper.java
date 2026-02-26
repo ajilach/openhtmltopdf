@@ -1429,9 +1429,9 @@ public class PdfBoxAccessibilityHelper {
         @Override
         void finish(AbstractStructualElement parent) {
             AsideStructualElement child = this;
-            // Always create a structure element; do not skip for empty children.
             createPdfStrucureElement(parent, child);
             handleGlobalAttributes();
+            reorderFormInputGroupLabelValue(child.children, child.box);
             finishTreeItems(child.children, child);
         }
     }
@@ -1521,4 +1521,58 @@ public class PdfBoxAccessibilityHelper {
         return false;
     }
     /* End Redacto Change */
+
+    private static boolean isFormInputGroupAside(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        if (!"aside".equals(box.getElement().getTagName())) {
+            return false;
+        }
+        return elementHasClass(box.getElement(), "form-input-group");
+    }
+
+    private static boolean isElementTagWithClass(Box box, String tagName, String requiredClass) {
+        if (box == null || box.getElement() == null || box.isAnonymous()) {
+            return false;
+        }
+        if (!tagName.equals(box.getElement().getTagName())) {
+            return false;
+        }
+        return elementHasClass(box.getElement(), requiredClass);
+    }
+
+    private static void reorderFormInputGroupLabelValue(List<AbstractTreeItem> children, Box parentBox) {
+        if (!isFormInputGroupAside(parentBox) || children == null || children.size() < 3) {
+            return;
+        }
+
+        for (int i = 0; i <= children.size() - 3; i++) {
+            AbstractTreeItem first = children.get(i);
+            AbstractTreeItem second = children.get(i + 1);
+            AbstractTreeItem third = children.get(i + 2);
+
+            if (!(first instanceof AbstractStructualElement) || !(second instanceof AbstractStructualElement) || !(third instanceof AbstractStructualElement)) {
+                continue;
+            }
+
+            Box firstBox = ((AbstractStructualElement) first).box;
+            Box secondBox = ((AbstractStructualElement) second).box;
+            Box thirdBox = ((AbstractStructualElement) third).box;
+
+            if (!isElementTagWithClass(firstBox, "span", "input-value")) {
+                continue;
+            }
+            if (!isElementTagWithClass(secondBox, "hr", "input-separator")) {
+                continue;
+            }
+            if (!isElementTagWithClass(thirdBox, "span", "input-label")) {
+                continue;
+            }
+
+            children.set(i, third);
+            children.set(i + 2, first);
+            i += 2;
+        }
+    }
 }
