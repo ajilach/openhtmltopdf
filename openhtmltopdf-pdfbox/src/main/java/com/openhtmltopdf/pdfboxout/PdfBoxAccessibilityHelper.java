@@ -1052,8 +1052,9 @@ public class PdfBoxAccessibilityHelper {
         if (box != null && isInsideText(box)) {
             String tagName = box.getElement() != null ? box.getElement().getTagName() : null;
             boolean isStaticTextContainer = "p".equals(tagName) || "span".equals(tagName) || "li".equals(tagName);
+            boolean isListContainer = "ul".equals(tagName) || "ol".equals(tagName);
 
-            if (!isStaticTextContainer) {
+            if (!isStaticTextContainer && !isListContainer) {
                 child = new PassthroughStructualElement();
             }
         }
