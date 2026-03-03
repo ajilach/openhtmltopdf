@@ -1050,11 +1050,12 @@ public class PdfBoxAccessibilityHelper {
         }
 
         if (box != null && isInsideText(box)) {
+            boolean isInAnchor = isInsideAnchor(box);
             String tagName = box.getElement() != null ? box.getElement().getTagName() : null;
             boolean isStaticTextContainer = "p".equals(tagName) || "span".equals(tagName) || "li".equals(tagName);
             boolean isListContainer = "ul".equals(tagName) || "ol".equals(tagName);
 
-            if (!isStaticTextContainer && !isListContainer) {
+            if (!isInAnchor && !isStaticTextContainer && !isListContainer) {
                 child = new PassthroughStructualElement();
             }
         }
@@ -1462,6 +1463,20 @@ public class PdfBoxAccessibilityHelper {
             if (current.getElement() != null) {
                 String tag = current.getElement().getTagName();
                 if ("p".equals(tag) || "span".equals(tag) || "li".equals(tag)) {
+                    return true;
+                }
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private static boolean isInsideAnchor(Box box) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null) {
+                String tag = current.getElement().getTagName();
+                if ("a".equals(tag)) {
                     return true;
                 }
             }
