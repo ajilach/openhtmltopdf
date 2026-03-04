@@ -878,10 +878,70 @@ public class PdfBoxAccessibilityHelper {
             root.appendKid(rootElem);
 
             _root.elem = rootElem;
+            relocateHeaderFooterContainerAfterFirstH1(_root.children);
             finishTreeItems(_root.children, _root);
 
             _od.getWriter().getDocumentCatalog().setStructureTreeRoot(root);
         }
+    }
+
+    private void relocateHeaderFooterContainerAfterFirstH1(List<AbstractTreeItem> rootChildren) {
+        AbstractTreeItem containerItem = findAndRemoveHeaderFooterContainer(rootChildren);
+        if (containerItem == null) {
+            return;
+        }
+        if (!insertAfterFirstH1(rootChildren, containerItem)) {
+            rootChildren.add(0, containerItem);
+        }
+    }
+
+    private AbstractTreeItem findAndRemoveHeaderFooterContainer(List<AbstractTreeItem> items) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isHeaderFooterAccessibleContainer(se.box)) {
+                    items.remove(i);
+                    return se;
+                }
+                AbstractTreeItem found = findAndRemoveHeaderFooterContainer(se.children);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean insertAfterFirstH1(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isH1Element(se.box)) {
+                    items.add(i + 1, containerItem);
+                    return true;
+                }
+                if (insertAfterFirstH1(se.children, containerItem)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isHeaderFooterAccessibleContainer(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        return elementHasClass(box.getElement(), "header-footer-accessible-container");
+    }
+
+    private static boolean isH1Element(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        return "h1".equals(box.getElement().getTagName());
     }
 
     public void finishNumberTree() {
@@ -989,17 +1049,18 @@ public class PdfBoxAccessibilityHelper {
             }
         }
 
-        /* Start Redacto Change - do not create structure Element for input-value and input-label */
+        if (box != null && isInsideText(box)) {
+            boolean isInAnchor = isInsideAnchor(box);
+            String tagName = box.getElement() != null ? box.getElement().getTagName() : null;
+            boolean isStaticTextContainer = "p".equals(tagName) || "span".equals(tagName) || "li".equals(tagName);
+            boolean isListContainer = "ul".equals(tagName) || "ol".equals(tagName);
 
-        if (box != null && isInsideStaticTextParagraph(box)) {
-            boolean isStaticTextP = box.getElement() != null &&
-                "p".equals(box.getElement().getTagName()) &&
-                elementHasClass(box.getElement(), "flattenStructureTree");
-
-            if (!isStaticTextP) {
+            if (!isInAnchor && !isStaticTextContainer && !isListContainer) {
                 child = new PassthroughStructualElement();
             }
         }
+        /* Start Redacto Change - do not create structure Element for input-value and input-label */
+
         if (child == null && box.getElement() != null && !box.isAnonymous()) {
             String htmlTag = box.getElement().getTagName();
             // Apply to common inline/block tags that might carry these classes
@@ -1370,9 +1431,9 @@ public class PdfBoxAccessibilityHelper {
         @Override
         void finish(AbstractStructualElement parent) {
             AsideStructualElement child = this;
-            // Always create a structure element; do not skip for empty children.
             createPdfStrucureElement(parent, child);
             handleGlobalAttributes();
+            reorderFormInputGroupLabelValue(child.children, child.box);
             finishTreeItems(child.children, child);
         }
     }
@@ -1394,15 +1455,28 @@ public class PdfBoxAccessibilityHelper {
     }
 
     /*
-     * staticText: If a box is inside a <p class="flattenStructureTree"> ancestor, we want a completely flat tagged structure
-     * underneath that P. I.e. only the outer /P exists; everything inside is emitted as marked content items.
+     * If a box is inside a text ancestor, we want a completely flat tagged structure
      */
-    private static boolean isInsideStaticTextParagraph(Box box) {
+    private static boolean isInsideText(Box box) {
         Box current = box;
         while (current != null) {
             if (current.getElement() != null) {
                 String tag = current.getElement().getTagName();
-                if ("p".equals(tag) && elementHasClass(current.getElement(), "flattenStructureTree")) {
+                if ("p".equals(tag) || "span".equals(tag) || "li".equals(tag)) {
+                    return true;
+                }
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private static boolean isInsideAnchor(Box box) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null) {
+                String tag = current.getElement().getTagName();
+                if ("a".equals(tag)) {
                     return true;
                 }
             }
@@ -1463,4 +1537,58 @@ public class PdfBoxAccessibilityHelper {
         return false;
     }
     /* End Redacto Change */
+
+    private static boolean isFormInputGroupAside(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        if (!"aside".equals(box.getElement().getTagName())) {
+            return false;
+        }
+        return elementHasClass(box.getElement(), "form-input-group");
+    }
+
+    private static boolean isElementTagWithClass(Box box, String tagName, String requiredClass) {
+        if (box == null || box.getElement() == null || box.isAnonymous()) {
+            return false;
+        }
+        if (!tagName.equals(box.getElement().getTagName())) {
+            return false;
+        }
+        return elementHasClass(box.getElement(), requiredClass);
+    }
+
+    private static void reorderFormInputGroupLabelValue(List<AbstractTreeItem> children, Box parentBox) {
+        if (!isFormInputGroupAside(parentBox) || children == null || children.size() < 3) {
+            return;
+        }
+
+        for (int i = 0; i <= children.size() - 3; i++) {
+            AbstractTreeItem first = children.get(i);
+            AbstractTreeItem second = children.get(i + 1);
+            AbstractTreeItem third = children.get(i + 2);
+
+            if (!(first instanceof AbstractStructualElement) || !(second instanceof AbstractStructualElement) || !(third instanceof AbstractStructualElement)) {
+                continue;
+            }
+
+            Box firstBox = ((AbstractStructualElement) first).box;
+            Box secondBox = ((AbstractStructualElement) second).box;
+            Box thirdBox = ((AbstractStructualElement) third).box;
+
+            if (!isElementTagWithClass(firstBox, "span", "input-value")) {
+                continue;
+            }
+            if (!isElementTagWithClass(secondBox, "hr", "input-separator")) {
+                continue;
+            }
+            if (!isElementTagWithClass(thirdBox, "span", "input-label")) {
+                continue;
+            }
+
+            children.set(i, third);
+            children.set(i + 2, first);
+            i += 2;
+        }
+    }
 }
