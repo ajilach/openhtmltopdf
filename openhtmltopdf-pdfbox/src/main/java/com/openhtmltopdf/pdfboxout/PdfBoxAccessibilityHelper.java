@@ -890,9 +890,34 @@ public class PdfBoxAccessibilityHelper {
         if (containerItem == null) {
             return;
         }
-        if (!insertAfterFirstH1(rootChildren, containerItem)) {
+        if (!insertAfterFirstSubFormTitle(rootChildren, containerItem) && !insertAfterFirstH1(rootChildren, containerItem)) {
             rootChildren.add(0, containerItem);
         }
+    }
+
+    private boolean insertAfterFirstSubFormTitle(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isSubFormTitleP(se.box)) {
+                    items.add(i + 1, containerItem);
+                    return true;
+                }
+                if (insertAfterFirstSubFormTitle(se.children, containerItem)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSubFormTitleP(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+        org.w3c.dom.Element elem = box.getElement();
+        return "p".equals(elem.getTagName()) && "sub-form-title".equals(elem.getAttribute("id"));
     }
 
     private AbstractTreeItem findAndRemoveHeaderFooterContainer(List<AbstractTreeItem> items) {
