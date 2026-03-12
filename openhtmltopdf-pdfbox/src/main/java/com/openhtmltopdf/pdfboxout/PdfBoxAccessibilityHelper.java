@@ -395,6 +395,8 @@ public class PdfBoxAccessibilityHelper {
 
             if (listStyleType == IdentValue.NONE) {
                 listType = "None";
+            } else if (listStyleType == IdentValue.FS_DASH) {
+                listType = "None";
             } else if (listStyleType == IdentValue.DISC) {
                 listType = "Disc";
             } else if (listStyleType == IdentValue.SQUARE) {

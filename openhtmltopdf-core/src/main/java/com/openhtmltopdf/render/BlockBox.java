@@ -417,6 +417,27 @@ public class BlockBox extends Box implements InlinePaintable {
     }
 
     private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle) {
+        if (listStyle == IdentValue.FS_DASH) {
+            String text;
+            IdentValue listDirection = getParent().getStyle().getDirection();
+            if (listDirection == IdentValue.RTL) {
+                text = "  –";
+            } else {
+                assert listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO;
+                text = "–  ";
+            }
+
+            int w = c.getTextRenderer().getWidth(
+                    c.getFontContext(),
+                    getStyle().getFSFont(c),
+                    text);
+
+            MarkerData.TextMarker result = new MarkerData.TextMarker();
+            result.setLayoutWidth(w);
+            result.setText(text);
+            return result;
+        }
+
         String text;
 
         int listCounter = getListCounter();

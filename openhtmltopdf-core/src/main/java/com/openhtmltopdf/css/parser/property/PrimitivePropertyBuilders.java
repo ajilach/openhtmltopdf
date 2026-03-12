@@ -77,7 +77,7 @@ public class PrimitivePropertyBuilders {
             IdentValue.LOWER_GREEK, IdentValue.LOWER_LATIN,
             IdentValue.UPPER_LATIN, IdentValue.ARMENIAN,
             IdentValue.GEORGIAN, IdentValue.LOWER_ALPHA,
-            IdentValue.UPPER_ALPHA, IdentValue.NONE });
+            IdentValue.UPPER_ALPHA, IdentValue.NONE, IdentValue.FS_DASH });
 
     // repeat | repeat-x | repeat-y | no-repeat | inherit
     public static final BitSet BACKGROUND_REPEATS = setFor(
