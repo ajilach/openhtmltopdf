@@ -7,6 +7,8 @@
 5. Commit: Finished deployment 1...
 6. Merge back to develop and create new tag 1..._release
 
+Check status on https://central.sonatype.com/publishing (it takes around 15min. from publishing to published)
+
 # Maven Central Distribution Guide
 
 This document summarizes the process of publishing this fork to Maven Central.
