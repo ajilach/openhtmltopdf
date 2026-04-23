@@ -33,6 +33,7 @@ import com.openhtmltopdf.extend.StructureType;
 import com.openhtmltopdf.newtable.TableCellBox;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.render.Box;
+import com.openhtmltopdf.render.FlowingColumnBox;
 import com.openhtmltopdf.render.InlineLayoutBox;
 import com.openhtmltopdf.render.LineBox;
 import com.openhtmltopdf.render.MarkerData;
@@ -1053,10 +1054,22 @@ public class PdfBoxAccessibilityHelper {
             child = parentItem;
             parent = parent.getParent();
         }
+
+        if (parent != null &&
+            child instanceof AbstractStructualElement &&
+            child.parent == null) {
+            AbstractStructualElement existingParent = (AbstractStructualElement) parent.getAccessibilityObject();
+            existingParent.addChild(child);
+            child.parent = existingParent;
+        }
     }
 
     private AbstractStructualElement createStructureItem(StructureType type, Box box) {
         AbstractStructualElement child = null;
+
+        if (box instanceof FlowingColumnBox) {
+            child = new PassthroughStructualElement();
+        }
 
         if (box instanceof BlockBox) {
             BlockBox bb = (BlockBox) box;
