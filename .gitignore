@@ -22,3 +22,5 @@ Maven_Ant_Builder.launch
 /.metadata/
 /.claude/
 /CLAUDE.md
+/build-and-sync-m2.sh
+/.run/
