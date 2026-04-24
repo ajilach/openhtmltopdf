@@ -525,6 +525,15 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.ColumnGap()
             );
 
+    public final static CSSName COLUMN_FILL =
+            addProperty(
+                    "column-fill",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.ColumnFill()
+            );
+
     /**
      * Unique CSSName instance for CSS2 property.
      */
@@ -2174,4 +2183,3 @@ public final class CSSName implements Comparable<CSSName> {
  *
  *
  */
-

@@ -1042,6 +1042,10 @@ public class CalculatedStyle {
     public int columnCount() {
     	return (int) asFloat(CSSName.COLUMN_COUNT);
     }
+
+    public boolean isColumnFillAuto() {
+        return isIdent(CSSName.COLUMN_FILL, IdentValue.AUTO);
+    }
     
     public int fsMaxOverflowPages() {
         return (int) asFloat(CSSName.FS_MAX_OVERFLOW_PAGES);

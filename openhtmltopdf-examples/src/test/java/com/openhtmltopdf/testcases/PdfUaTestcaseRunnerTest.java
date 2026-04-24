@@ -119,4 +119,14 @@ public class PdfUaTestcaseRunnerTest {
     public void testLinks() throws Exception {
         run("links");
     }
+
+    @Test
+    public void testColumnsBalance() throws Exception {
+        run("columns-balance");
+    }
+
+    @Test
+    public void testColumnsBalanceNested() throws Exception {
+        run("columns-balance-nested");
+    }
 }

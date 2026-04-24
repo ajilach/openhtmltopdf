@@ -1537,6 +1537,16 @@ public class PrimitivePropertyBuilders {
 			return ALLOWED;
 		}
     }
+
+    public static class ColumnFill extends SingleIdent {
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.BALANCE });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
     
 
     static List<PropertyDeclaration> createTwoValueResponse(CSSName cssName, PropertyValue value1, PropertyValue value2,

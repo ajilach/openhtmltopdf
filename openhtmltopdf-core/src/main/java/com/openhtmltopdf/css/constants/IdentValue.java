@@ -66,6 +66,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue AUTO = addValue("auto");
     public final static IdentValue AVOID = addValue("avoid");
     public final static IdentValue BASELINE = addValue("baseline");
+    public final static IdentValue BALANCE = addValue("balance");
     public final static IdentValue BLINK = addValue("blink");
     public final static IdentValue BLOCK = addValue("block");
     public final static IdentValue BOLD = addValue("bold");

@@ -1,0 +1,33 @@
+<html>
+<head>
+  <title>PDF/UA Balanced Columns Testcase</title>
+  <meta name="description" content="Balanced multicolumn example"/>
+  <meta name="subject" content="PDF/UA balanced columns sample"/>
+  <style>
+  @page {
+    size: 220px 220px;
+    margin: 10px;
+  }
+  body {
+    margin: 0;
+    width: 200px;
+  }
+  .cols {
+    column-count: 2;
+    column-gap: 12px;
+    column-fill: balance;
+  }
+  p {
+    margin: 0 0 8px 0;
+  }
+  </style>
+</head>
+<body style="font-family: 'TestFont'; font-size: 12px;">
+<h1 style="font-size: 16px; margin: 0 0 10px 0;">Balanced Columns</h1>
+<div class="cols">
+  <p>Paragraph one contains enough text to require several wrapped lines in the first column.</p>
+  <p>Paragraph two adds more content so the balancing code has to distribute text across both columns.</p>
+  <p>Paragraph three keeps the example simple while still exercising accessible PDF output.</p>
+</div>
+</body>
+</html>

@@ -49,4 +49,9 @@ public class CssPropertiesTest {
 	public void testCss3MultiColumnLayout() throws Exception {
 		TestcaseRunner.runTestWithoutOutput("multi-column-layout");
 	}
+
+	@Test
+	public void testCss3MultiColumnLayoutNested() throws Exception {
+		TestcaseRunner.runTestWithoutOutput("multi-column-layout-nested");
+	}
 }

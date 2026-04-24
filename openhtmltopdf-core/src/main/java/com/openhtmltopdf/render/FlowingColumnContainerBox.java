@@ -54,6 +54,28 @@ public class FlowingColumnContainerBox extends BlockBox {
                            columnIndex, copyY, pasteY, maxColHeight, pageIdx);
         }
     }
+
+    private static class BreakMetrics {
+        private final ColumnBreakOpportunity breakOpportunity;
+        private final int absY;
+        private final int borderBoxHeight;
+
+        private BreakMetrics(ColumnBreakOpportunity breakOpportunity, LayoutContext c) {
+            this.breakOpportunity = breakOpportunity;
+            this.absY = breakOpportunity.box.getAbsY();
+            this.borderBoxHeight = breakOpportunity.box.getBorderBoxHeight(c);
+        }
+    }
+
+    private static class LayoutRun {
+        private final int finalHeight;
+        private final int columnsUsed;
+
+        private LayoutRun(int finalHeight, int columnsUsed) {
+            this.finalHeight = finalHeight;
+            this.columnsUsed = columnsUsed;
+        }
+    }
     
     public static class ColumnBreakOpportunity {
         private final Box box;             // The box where we can break.
@@ -128,9 +150,7 @@ public class FlowingColumnContainerBox extends BlockBox {
                     repositionAncestors(breakOp.ancestors, xAdjust, yAdjust);
                 }
                 
-                if (breakOp.box instanceof LineBox) {
-                    breakOp.box.calcChildLocations();
-                }
+                refreshMovedBox(breakOp.box);
             }
         }
     }
@@ -163,99 +183,178 @@ public class FlowingColumnContainerBox extends BlockBox {
         // so if user has used border, background color
         // or overflow: hidden it will produce incorrect results.
     }
-    
-    private int adjustUnbalanced(LayoutContext c, Box child, int colGap, int colWidth, int columnCount, int xStart) {
-        // At the start of this method we have one long column in child.
-        // This method works by going through the boxes and adjusting their position
-        // into the current column.
-        
-        final int startY = this.getAbsY();
-        final List<PageBox> pages = c.getRootLayer().getPages();
-        
-        final boolean haveFloats = 
-                !this.getPersistentBFC().getFloatManager().getFloats(FloatManager.FloatDirection.LEFT).isEmpty() ||
-                !this.getPersistentBFC().getFloatManager().getFloats(FloatManager.FloatDirection.RIGHT).isEmpty();
-        
-        // We only need the tree map if we have floats.
-        final TreeMap<Integer, ColumnPosition> columnMap = haveFloats ? new TreeMap<>() : null;
-        
-        // These are all running values that change as we layout our boxes into columns.
-        int pageIdx      = findPageIndex(pages, startY);
-        int colStart     = startY;
-        int colHeight    = pages.get(pageIdx).getBottom() - this.getChild().getAbsY();
-        int colIdx       = 0;
-        int finalHeight  = 0;
 
-        if (child.getHeight() <= colHeight) {
-            // We fit in the first column.
-            return child.getHeight();
-        }
-        
-        // Recursively find all the column break opportunities (typically line boxes).
+    private void refreshMovedBox(Box box) {
+        box.calcChildLocations();
+    }
+    
+    private int getMaxColumnHeight(PageBox page, int pasteY, int balancedHeight) {
+        int pageHeight = page.getBottom() - pasteY;
+        return balancedHeight > 0 ? Math.min(pageHeight, balancedHeight) : pageHeight;
+    }
+
+    private List<BreakMetrics> collectBreakMetrics(LayoutContext c, Box child) {
         ColumnBreakStore store = new ColumnBreakStore();
         child.findColumnBreakOpportunities(store);
-        
+
         if (store.breaks.isEmpty() || store.breaks.size() == 1) {
-            // Nothing we can do except overflow.
-            // The only break is at the start of the first child.
+            return Collections.emptyList();
+        }
+
+        Collections.sort(store.breaks,
+                Comparator.comparingInt(brk -> brk.box.getAbsY() + brk.box.getBorderBoxHeight(c)));
+
+        List<BreakMetrics> metrics = new ArrayList<>(store.breaks.size());
+        for (ColumnBreakOpportunity brk : store.breaks) {
+            metrics.add(new BreakMetrics(brk, c));
+        }
+
+        return metrics;
+    }
+
+    private LayoutRun simulateColumnLayout(LayoutContext c, List<BreakMetrics> breaks, int columnCount, int balancedHeight, boolean allowPageAdd) {
+        final int startY = this.getAbsY();
+        final List<PageBox> pages = c.getRootLayer().getPages();
+        int pageIdx = findPageIndex(pages, startY);
+        int colIdx = 0;
+        int copyY = startY;
+        int pasteY = startY;
+        int maxColHeight = getMaxColumnHeight(pages.get(pageIdx), pasteY, balancedHeight);
+        int finalHeight = 0;
+
+        for (int i = 0; i < breaks.size(); i++) {
+            BreakMetrics br = breaks.get(i);
+            BreakMetrics next = i < breaks.size() - 1 ? breaks.get(i + 1) : null;
+
+            int yAdjust = pasteY - copyY;
+            int yProposedFinal = br.absY + yAdjust;
+            finalHeight = Math.max((yProposedFinal + br.borderBoxHeight) - startY, finalHeight);
+
+            if (next != null) {
+                int nextYHeight = next.absY + yAdjust + next.borderBoxHeight - pasteY;
+
+                if (nextYHeight > maxColHeight ||
+                    br.breakOpportunity.box.getStyle().isColumnBreakAfter() ||
+                    next.breakOpportunity.box.getStyle().isColumnBreakBefore()) {
+                    int newColIdx = colIdx + 1;
+                    boolean needNewPage = newColIdx % columnCount == 0;
+                    int newPageIdx = needNewPage ? pageIdx + 1 : pageIdx;
+
+                    if (newPageIdx >= pages.size()) {
+                        if (!allowPageAdd) {
+                            return new LayoutRun(finalHeight, newColIdx + 1);
+                        }
+                        c.getRootLayer().addPage(c);
+                    }
+
+                    PageBox page = pages.get(newPageIdx);
+                    copyY = next.absY;
+                    pasteY = needNewPage ? page.getTop() : pasteY;
+                    pageIdx = newPageIdx;
+                    colIdx = newColIdx;
+                    maxColHeight = getMaxColumnHeight(page, pasteY, balancedHeight);
+                }
+            }
+        }
+
+        return new LayoutRun(finalHeight, colIdx + 1);
+    }
+
+    private int findBalancedColumnHeight(LayoutContext c, Box child, List<BreakMetrics> breaks, int columnCount) {
+        LayoutRun baseline = simulateColumnLayout(c, breaks, columnCount, 0, true);
+        int desiredColumns = baseline.columnsUsed;
+
+        // If the content fits in one full-height column, still split it across the
+        // available columns when column-fill: balance is requested.
+        if (desiredColumns <= 1) {
+            desiredColumns = Math.min(columnCount, breaks.size());
+        }
+
+        if (desiredColumns <= 1) {
+            return 0;
+        }
+
+        int low = 1;
+        for (BreakMetrics br : breaks) {
+            low = Math.max(low, br.borderBoxHeight);
+        }
+
+        int high = Math.max(low, child.getHeight());
+        while (low < high) {
+            int mid = low + ((high - low) / 2);
+            LayoutRun attempt = simulateColumnLayout(c, breaks, columnCount, mid, false);
+            if (attempt.columnsUsed <= desiredColumns) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+
+        return high;
+    }
+
+    private int adjustColumns(LayoutContext c, Box child, int colGap, int colWidth, int columnCount) {
+        final int startY = this.getAbsY();
+        final List<PageBox> pages = c.getRootLayer().getPages();
+        final boolean haveFloats =
+                !this.getPersistentBFC().getFloatManager().getFloats(FloatManager.FloatDirection.LEFT).isEmpty() ||
+                !this.getPersistentBFC().getFloatManager().getFloats(FloatManager.FloatDirection.RIGHT).isEmpty();
+        final TreeMap<Integer, ColumnPosition> columnMap = haveFloats ? new TreeMap<>() : null;
+
+        List<BreakMetrics> breaks = collectBreakMetrics(c, child);
+        if (breaks.isEmpty()) {
             return this.getChild().getHeight();
         }
 
-        // Add our first column.
-        ColumnPosition current = new ColumnPosition(colIdx, /* copy-from */ colStart, /* copy-to */ colStart, colHeight, pageIdx);
-        if (haveFloats) {
-            columnMap.put(colStart, current);
+        int balancedHeight = getStyle().isColumnFillAuto() ? 0 : findBalancedColumnHeight(c, child, breaks, columnCount);
+        int firstColumnHeight = getMaxColumnHeight(pages.get(findPageIndex(pages, startY)), this.getChild().getAbsY(), balancedHeight);
+
+        if (child.getHeight() <= firstColumnHeight && getStyle().isColumnFillAuto()) {
+            return child.getHeight();
         }
-         
-        // FIXME: Don't sort if we have in order - common case.
-        Collections.sort(store.breaks, 
-                Comparator.comparingInt(brk -> brk.box.getAbsY() + brk.box.getBorderBoxHeight(c)));
-        
-        for (int i = 0; i < store.breaks.size(); i++) {
-            ColumnBreakOpportunity br = store.breaks.get(i);
-            ColumnBreakOpportunity nextBr = i < store.breaks.size() - 1 ? store.breaks.get(i + 1) : null;
-            Box ch = br.box;
+
+        int pageIdx = findPageIndex(pages, startY);
+        int colIdx = 0;
+        int finalHeight = 0;
+        ColumnPosition current = new ColumnPosition(
+                colIdx,
+                startY,
+                startY,
+                getMaxColumnHeight(pages.get(pageIdx), startY, balancedHeight),
+                pageIdx);
+
+        if (haveFloats) {
+            columnMap.put(startY, current);
+        }
+
+        for (int i = 0; i < breaks.size(); i++) {
+            BreakMetrics br = breaks.get(i);
+            BreakMetrics next = i < breaks.size() - 1 ? breaks.get(i + 1) : null;
+            ColumnBreakOpportunity breakOp = br.breakOpportunity;
+            Box ch = breakOp.box;
 
             int yAdjust = current.pasteY - current.copyY;
-            int yProposedFinal = ch.getAbsY() + yAdjust;
+            int yProposedFinal = br.absY + yAdjust;
             ch.setAbsY(yProposedFinal);
 
-            // We need the max height of the column which is the bottom of the current box
-            // minus the top of the column.
-            finalHeight = Math.max((yProposedFinal + ch.getBorderBoxHeight(c)) - startY, finalHeight);
+            finalHeight = Math.max((yProposedFinal + br.borderBoxHeight) - startY, finalHeight);
 
-            // x position should be easy.
             int xAdjust = ((colIdx % columnCount) * colWidth) + ((colIdx % columnCount) * colGap);
             ch.setAbsX(ch.getAbsX() + xAdjust);
 
-            if (br.ancestors != null) {
-                // We move container ancestors with the first child that is
-                // a break opportunity.
-                // EXAMPLE: column box -> p -> ul -> li -> line box
-                // We would move the p, ul and li on the first line of the first li.
-                // For the second li we only have to move the parent li as p and ul have
-                // already been processed.
-                repositionAncestors(br.ancestors, xAdjust, yAdjust);
+            if (breakOp.ancestors != null) {
+                repositionAncestors(breakOp.ancestors, xAdjust, yAdjust);
             }
-            
-            if (ch instanceof LineBox) {
-                // We do not call this on other kind of boxes as it would undo our work in moving them.
-                ch.calcChildLocations();
-            }
- 
-            if (nextBr != null) {
-                Box next = nextBr.box;
-                int nextYHeight = next.getAbsY() + yAdjust + next.getBorderBoxHeight(c) - current.pasteY;
-                
+
+            refreshMovedBox(ch);
+
+            if (next != null) {
+                int nextYHeight = next.absY + yAdjust + next.borderBoxHeight - current.pasteY;
+
                 if (nextYHeight > current.maxColHeight ||
                     ch.getStyle().isColumnBreakAfter() ||
-                    next.getStyle().isColumnBreakBefore()) {
-                    // We have moved past the bottom of the current column (or explicit break).
-                    // Time for a new column.
-                    // FIXME: What if box doesn't fit in new column either?
+                    next.breakOpportunity.box.getStyle().isColumnBreakBefore()) {
                     int newColIdx = colIdx + 1;
-                
-                    // And possibly a new page.
                     boolean needNewPage = newColIdx % columnCount == 0;
                     int newPageIdx = needNewPage ? current.pageIdx + 1 : current.pageIdx;
 
@@ -263,20 +362,24 @@ public class FlowingColumnContainerBox extends BlockBox {
                         c.getRootLayer().addPage(c);
                     }
 
-                    // We need the y top of the new column.
                     PageBox page = pages.get(newPageIdx);
                     int pasteY = needNewPage ? page.getTop() : current.pasteY;
-                    int copyY  = next.getAbsY();
-                    
-                    current = new ColumnPosition(newColIdx, copyY, pasteY, page.getBottom() - pasteY, newPageIdx);
+                    int copyY = next.absY;
+
+                    current = new ColumnPosition(
+                            newColIdx,
+                            copyY,
+                            pasteY,
+                            getMaxColumnHeight(page, pasteY, balancedHeight),
+                            newPageIdx);
                     if (haveFloats) {
                         columnMap.put(copyY, current);
                     }
-                    colIdx++;
+                    colIdx = newColIdx;
                 }
             }
         }
-        
+
         if (haveFloats) {
             layoutFloats(columnMap, this.getPersistentBFC(), columnCount, colWidth, colGap);
         }
@@ -313,7 +416,7 @@ public class FlowingColumnContainerBox extends BlockBox {
         _child.layout(c, contentStart);
         c.setIsPrintOverride(null);
 
-        int height = adjustUnbalanced(c, _child, (int) colGap, colWidth, colCount, this.getLeftMBP() + this.getX());
+        int height = adjustColumns(c, _child, (int) colGap, colWidth, colCount);
         _child.setHeight(0);
         this.setHeight(height);
         c.popBFC();

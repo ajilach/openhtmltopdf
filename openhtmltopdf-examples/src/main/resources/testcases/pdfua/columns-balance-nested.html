@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Balanced Nested Multicolumn PDF UA</title>
+  <meta name="description" content="Balanced nested multicolumn example"/>
+  <meta name="subject" content="PDF/UA balanced nested columns sample"/>
+  <style>
+  @page {
+    size: A4;
+    margin: 1in;
+  }
+
+  body {
+    font-family: sans-serif;
+  }
+
+  .columns {
+    column-count: 2;
+    column-gap: 12px;
+    column-fill: balance;
+  }
+
+  .fragment {
+    margin-bottom: 0.5em;
+  }
+
+  .fragment p {
+    margin: 0 0 0.5em 0;
+  }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Balanced Nested Columns</h1>
+    <div class="columns">
+      <div class="fragment">
+        <div class="content"><p>Paragraph one contains enough text to require several wrapped lines in the first column.</p></div>
+        <div class="content"><p>Paragraph two adds more content so the balancing code has to distribute text across both columns.</p></div>
+        <div class="content"><p><strong>Nested heading</strong></p></div>
+        <div class="content"><p>Paragraph three is wrapped in extra block containers to match real document fragment structures.</p></div>
+        <div class="content"><p>Paragraph four confirms that descendant line boxes follow their moved block containers during balancing.</p></div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
