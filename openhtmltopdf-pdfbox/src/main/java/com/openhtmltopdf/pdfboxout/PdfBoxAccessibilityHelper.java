@@ -882,6 +882,7 @@ public class PdfBoxAccessibilityHelper {
 
             _root.elem = rootElem;
             relocateHeaderFooterContainerAfterFirstH1(_root.children);
+            relocateSummaryDocumentReceiverToTop(_root.children);
             finishTreeItems(_root.children, _root);
 
             _od.getWriter().getDocumentCatalog().setStructureTreeRoot(root);
@@ -896,6 +897,14 @@ public class PdfBoxAccessibilityHelper {
         if (!insertAfterFirstSubFormTitle(rootChildren, containerItem) && !insertAfterFirstH1(rootChildren, containerItem)) {
             rootChildren.add(0, containerItem);
         }
+    }
+
+    private void relocateSummaryDocumentReceiverToTop(List<AbstractTreeItem> rootChildren) {
+        AbstractTreeItem containerItem = findAndRemoveSummaryDocumentReceiver(rootChildren);
+        if (containerItem == null) {
+            return;
+        }
+        rootChildren.add(0, containerItem);
     }
 
     private boolean insertAfterFirstSubFormTitle(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
@@ -941,6 +950,24 @@ public class PdfBoxAccessibilityHelper {
         return null;
     }
 
+    private AbstractTreeItem findAndRemoveSummaryDocumentReceiver(List<AbstractTreeItem> items) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isSummaryDocumentReceiver(se.box)) {
+                    items.remove(i);
+                    return se;
+                }
+                AbstractTreeItem found = findAndRemoveSummaryDocumentReceiver(se.children);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
     private boolean insertAfterFirstH1(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
         for (int i = 0; i < items.size(); i++) {
             AbstractTreeItem item = items.get(i);
@@ -970,6 +997,14 @@ public class PdfBoxAccessibilityHelper {
             return false;
         }
         return "h1".equals(box.getElement().getTagName());
+    }
+
+    private static boolean isSummaryDocumentReceiver(Box box) {
+        if (box == null || box.getElement() == null || box.isAnonymous()) {
+            return false;
+        }
+        return "div".equals(box.getElement().getTagName()) &&
+            "summaryDocumentReceiver".equals(box.getElement().getAttribute("id"));
     }
 
     public void finishNumberTree() {
