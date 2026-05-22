@@ -1372,6 +1372,15 @@ public class BlockBox extends Box implements InlinePaintable {
             return;
         }
 
+        // Inline-block and similar atomic inline content create line boxes that
+        // behave more like embedded blocks than text lines. Applying widows /
+        // orphans backtracking to those mixed lines tends to pull earlier inline
+        // content onto the next page even though the real issue is the atomic
+        // line fragment at the page boundary.
+        if (containsBlockLevelLine()) {
+            return;
+        }
+
         LineBox firstLineBox = (LineBox)getChild(0);
         PageBox firstPage = c.getRootLayer().getFirstPage(c, firstLineBox);
 
@@ -1451,6 +1460,17 @@ public class BlockBox extends Box implements InlinePaintable {
                 }
             }
         }
+    }
+
+    private boolean containsBlockLevelLine() {
+        for (int i = 0; i < getChildCount(); i++) {
+            Box child = getChild(i);
+            if (child instanceof LineBox && ((LineBox) child).isContainsBlockLevelContent()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
