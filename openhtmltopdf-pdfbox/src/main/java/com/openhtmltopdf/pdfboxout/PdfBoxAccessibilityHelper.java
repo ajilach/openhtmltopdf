@@ -1102,11 +1102,15 @@ public class PdfBoxAccessibilityHelper {
     private AbstractStructualElement createStructureItem(StructureType type, Box box) {
         AbstractStructualElement child = null;
 
-        if (box instanceof FlowingColumnBox) {
+        if (hasClassInSelfOrAncestors(box, "pdf-artifact")) {
             child = new PassthroughStructualElement();
         }
 
-        if (box instanceof BlockBox) {
+        if (child == null && box instanceof FlowingColumnBox) {
+            child = new PassthroughStructualElement();
+        }
+
+        if (child == null && box instanceof BlockBox) {
             BlockBox bb = (BlockBox) box;
 
             if (bb.isReplaced()) {
@@ -1124,7 +1128,7 @@ public class PdfBoxAccessibilityHelper {
             }
         }
 
-        if (box != null && isInsideText(box)) {
+        if (child == null && box != null && isInsideText(box)) {
             boolean isInAnchor = isInsideAnchor(box);
             String tagName = box.getElement() != null ? box.getElement().getTagName() : null;
             boolean isStaticTextContainer = "p".equals(tagName) || "span".equals(tagName) || "li".equals(tagName);
@@ -1571,9 +1575,20 @@ public class PdfBoxAccessibilityHelper {
 
 
     private boolean markAsArtifactIfNeeded(Box box) {
-        if (box == null || box.getElement() == null) {
+        if (box == null) {
             return false;
         }
+
+        if (hasClassInSelfOrAncestors(box, "pdf-artifact")) {
+            COSDictionary layout = createLayoutArtifact(box);
+            _cs.beginMarkedContent(COSName.ARTIFACT, layout);
+            return true;
+        }
+
+        if (box.getElement() == null) {
+            return false;
+        }
+
         // Applies to both inline spans and replaced elements (e.g. images) carrying these classes.
         if (elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol") ||
             elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-radio") ||
@@ -1606,6 +1621,17 @@ public class PdfBoxAccessibilityHelper {
                 if (classAttr != null && classAttr.contains("top-right-first")) {
                     return true;
                 }
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private static boolean hasClassInSelfOrAncestors(Box box, String cls) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null && elementHasClass(current.getElement(), cls)) {
+                return true;
             }
             current = current.getParent();
         }
