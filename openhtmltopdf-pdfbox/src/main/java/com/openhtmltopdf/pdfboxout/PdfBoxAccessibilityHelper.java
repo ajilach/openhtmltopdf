@@ -882,6 +882,7 @@ public class PdfBoxAccessibilityHelper {
 
             _root.elem = rootElem;
             relocateHeaderFooterContainerAfterFirstH1(_root.children);
+            relocateSummaryDocumentReceiverToTop(_root.children);
             finishTreeItems(_root.children, _root);
 
             _od.getWriter().getDocumentCatalog().setStructureTreeRoot(root);
@@ -896,6 +897,14 @@ public class PdfBoxAccessibilityHelper {
         if (!insertAfterFirstSubFormTitle(rootChildren, containerItem) && !insertAfterFirstH1(rootChildren, containerItem)) {
             rootChildren.add(0, containerItem);
         }
+    }
+
+    private void relocateSummaryDocumentReceiverToTop(List<AbstractTreeItem> rootChildren) {
+        AbstractTreeItem containerItem = findAndRemoveSummaryDocumentReceiver(rootChildren);
+        if (containerItem == null) {
+            return;
+        }
+        rootChildren.add(0, containerItem);
     }
 
     private boolean insertAfterFirstSubFormTitle(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
@@ -941,6 +950,24 @@ public class PdfBoxAccessibilityHelper {
         return null;
     }
 
+    private AbstractTreeItem findAndRemoveSummaryDocumentReceiver(List<AbstractTreeItem> items) {
+        for (int i = 0; i < items.size(); i++) {
+            AbstractTreeItem item = items.get(i);
+            if (item instanceof GenericStructualElement) {
+                GenericStructualElement se = (GenericStructualElement) item;
+                if (isSummaryDocumentReceiver(se.box)) {
+                    items.remove(i);
+                    return se;
+                }
+                AbstractTreeItem found = findAndRemoveSummaryDocumentReceiver(se.children);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
     private boolean insertAfterFirstH1(List<AbstractTreeItem> items, AbstractTreeItem containerItem) {
         for (int i = 0; i < items.size(); i++) {
             AbstractTreeItem item = items.get(i);
@@ -970,6 +997,14 @@ public class PdfBoxAccessibilityHelper {
             return false;
         }
         return "h1".equals(box.getElement().getTagName());
+    }
+
+    private static boolean isSummaryDocumentReceiver(Box box) {
+        if (box == null || box.getElement() == null || box.isAnonymous()) {
+            return false;
+        }
+        return "div".equals(box.getElement().getTagName()) &&
+            "summaryDocumentReceiver".equals(box.getElement().getAttribute("id"));
     }
 
     public void finishNumberTree() {
@@ -1067,11 +1102,15 @@ public class PdfBoxAccessibilityHelper {
     private AbstractStructualElement createStructureItem(StructureType type, Box box) {
         AbstractStructualElement child = null;
 
-        if (box instanceof FlowingColumnBox) {
+        if (hasClassInSelfOrAncestors(box, "pdf-artifact")) {
             child = new PassthroughStructualElement();
         }
 
-        if (box instanceof BlockBox) {
+        if (child == null && box instanceof FlowingColumnBox) {
+            child = new PassthroughStructualElement();
+        }
+
+        if (child == null && box instanceof BlockBox) {
             BlockBox bb = (BlockBox) box;
 
             if (bb.isReplaced()) {
@@ -1089,7 +1128,7 @@ public class PdfBoxAccessibilityHelper {
             }
         }
 
-        if (box != null && isInsideText(box)) {
+        if (child == null && box != null && isInsideText(box)) {
             boolean isInAnchor = isInsideAnchor(box);
             String tagName = box.getElement() != null ? box.getElement().getTagName() : null;
             boolean isStaticTextContainer = "p".equals(tagName) || "span".equals(tagName) || "li".equals(tagName);
@@ -1536,9 +1575,20 @@ public class PdfBoxAccessibilityHelper {
 
 
     private boolean markAsArtifactIfNeeded(Box box) {
-        if (box == null || box.getElement() == null) {
+        if (box == null) {
             return false;
         }
+
+        if (hasClassInSelfOrAncestors(box, "pdf-artifact")) {
+            COSDictionary layout = createLayoutArtifact(box);
+            _cs.beginMarkedContent(COSName.ARTIFACT, layout);
+            return true;
+        }
+
+        if (box.getElement() == null) {
+            return false;
+        }
+
         // Applies to both inline spans and replaced elements (e.g. images) carrying these classes.
         if (elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol") ||
             elementHasClass(box.getElement(), "redacto-checkbox-radio-option-symbol-radio") ||
@@ -1571,6 +1621,17 @@ public class PdfBoxAccessibilityHelper {
                 if (classAttr != null && classAttr.contains("top-right-first")) {
                     return true;
                 }
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private static boolean hasClassInSelfOrAncestors(Box box, String cls) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() != null && elementHasClass(current.getElement(), cls)) {
+                return true;
             }
             current = current.getParent();
         }
