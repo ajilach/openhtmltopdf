@@ -906,15 +906,10 @@ public class InlineBoxing {
                 }
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
 
-                // JDK on Linux returns some goofy values for
-                // LineMetrics.getUnderlineOffset(). Compensate by always
-                // making sure underline fits inside the descender
-                if (fm.getUnderlineOffset() == 0) {  // HACK, are we running under the JDK
-                    int maxOffset =
-                        baseline + (int)fm.getDescent() - decoration.getThickness();
-                    if (decoration.getOffset() > maxOffset) {
-                        decoration.setOffset(maxOffset);
-                    }
+                // Keep underline inside the descender area so the last line cannot clip it.
+                int maxOffset = baseline + (int) fm.getDescent() - decoration.getThickness();
+                if (decoration.getOffset() > maxOffset) {
+                    decoration.setOffset(maxOffset);
                 }
                 result.add(decoration);
             }
