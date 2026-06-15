@@ -16,6 +16,10 @@
   <name>Openhtmltopdf Templates</name>
   <description>PDF templates and website generation for Openhtmltopdf. It is not deployed with a release.</description>
 
+  <properties>
+    <skipPublishing>true</skipPublishing>
+  </properties>
+
   <licenses>
     <license>
       <name>MIT</name>
