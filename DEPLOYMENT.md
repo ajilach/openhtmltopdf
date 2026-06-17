@@ -1,4 +1,90 @@
-# Deployment steps
+# Deployment via GitHub Actions (recommended)
+
+Releases are published by the `release` workflow (`.github/workflows/release.yml`).
+No local credentials and no personal GitHub login are needed — everyone with
+write access to the `ajilach/openhtmltopdf` repository can publish independently.
+
+## How it works
+
+The workflow builds all modules, signs them with GPG and uploads them to Maven
+Central via the `central-publishing-maven-plugin` (`autoPublish=true`). The
+publishing credentials and the signing key live as **repository secrets**, not on
+anyone's machine.
+
+## Who can release
+
+Only collaborators/organization members with **write access** can trigger it:
+
+- `workflow_dispatch` (the "Run workflow" button) requires write access.
+- Pushing a `v*` tag requires write access.
+
+Anyone forking this public repository works on their own fork; their forks have
+their own (empty) secrets and cannot push to or trigger workflows in this repo.
+Fork pull requests run **without** access to the secrets below. There is no
+required reviewer — any team member can release on their own.
+
+## One-time setup: repository secrets
+
+Configure these under **Settings > Secrets and variables > Actions** in the
+`ajilach/openhtmltopdf` repo (done once, by a repo admin):
+
+| Secret | Value |
+| --- | --- |
+| `MAVEN_CENTRAL_USERNAME` | Sonatype Central user token — username part |
+| `MAVEN_CENTRAL_PASSWORD` | Sonatype Central user token — password part |
+| `MAVEN_GPG_PRIVATE_KEY` | ASCII-armored GPG private key (full block) |
+| `MAVEN_GPG_PASSPHRASE` | passphrase of that GPG key |
+
+Get the values:
+
+- **User token**: log in at https://central.sonatype.com/ > Account > Generate
+  User Token. (Generating a new token invalidates the previous one.)
+- **GPG private key** (export the existing signing key `2EEBCF4339C581B8`):
+  ```bash
+  gpg --armor --export-secret-keys 2EEBCF4339C581B8
+  ```
+  Copy the entire output, including the `-----BEGIN/END PGP PRIVATE KEY BLOCK-----`
+  lines, into the secret.
+
+> Note: this uploads the Sonatype token and the GPG signing key to GitHub as
+> secrets. Alternatively, each releaser can use their own user token and their
+> own GPG key (any key whose public part is on a keyserver is accepted) — only
+> the four secret values would differ.
+
+If the `gh` CLI is installed and authenticated, the secrets can also be set from
+the command line:
+
+```bash
+gh secret set MAVEN_CENTRAL_USERNAME --repo ajilach/openhtmltopdf
+gh secret set MAVEN_CENTRAL_PASSWORD --repo ajilach/openhtmltopdf
+gh secret set MAVEN_GPG_PASSPHRASE  --repo ajilach/openhtmltopdf
+gpg --armor --export-secret-keys 2EEBCF4339C581B8 \
+  | gh secret set MAVEN_GPG_PRIVATE_KEY --repo ajilach/openhtmltopdf
+```
+
+## Releasing a new version
+
+1. Bump the version in the parent `pom.xml`: `<revision>increase version</revision>`.
+2. Commit: `Prepared revision version 1...` and push to `master`.
+3. Start the release, either:
+   - **Actions tab** > *release* workflow > **Run workflow** (select `master`), or
+   - push a tag: `git tag v1.0.x && git push origin v1.0.x`.
+4. Watch the run in the Actions tab. Then check
+   https://central.sonatype.com/publishing — it takes around 15 min. from
+   publishing to published.
+5. (Optional, to keep the existing convention) create a `1..._release` tag and
+   merge `master` back into `develop`.
+
+Remember: Maven Central versions are immutable (see *Version Immutability* below).
+A failed CI build never publishes, but a successful publish of a wrong version
+cannot be undone — only superseded by a higher version.
+
+---
+
+# Deployment from a local machine (fallback)
+
+Requires `~/.m2/private_settings.xml` with the `central` server credentials and
+the GPG profile, plus the signing key in the local GPG keyring.
 
 1. Merge develop into master
 2. Edit parent pom <revision>increase version</revision>

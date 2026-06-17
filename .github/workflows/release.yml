@@ -1,0 +1,55 @@
+# Publishes all modules to Maven Central (https://central.sonatype.com).
+#
+# Trigger:
+#   - Manually via the "Run workflow" button in the Actions tab (workflow_dispatch)
+#   - Automatically when a tag matching v* is pushed
+#
+# Only users with write access to this repository can trigger a release.
+# Pull requests from forks can NOT trigger this workflow and have no access
+# to the secrets below.
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   MAVEN_CENTRAL_USERNAME  - Sonatype Central user token (username part)
+#   MAVEN_CENTRAL_PASSWORD  - Sonatype Central user token (password part)
+#   MAVEN_GPG_PRIVATE_KEY   - ASCII-armored GPG private key used for signing
+#   MAVEN_GPG_PASSPHRASE    - passphrase of that GPG key
+name: release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+          # Generates a settings.xml with a server entry id=central whose
+          # username/password are read from the env vars below, and imports
+          # the GPG private key so maven-gpg-plugin can sign artifacts.
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Publish to Maven Central
+        run: mvn -B -ntp clean deploy -P release
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
