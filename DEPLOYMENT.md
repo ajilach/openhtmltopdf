@@ -11,6 +11,11 @@ Central via the `central-publishing-maven-plugin` (`autoPublish=true`). The
 publishing credentials and the signing key live as **repository secrets**, not on
 anyone's machine.
 
+Tests are skipped in the release workflow (`-DskipTests`): the visual regression
+tests in `openhtmltopdf-examples` are font/OS-sensitive and fail on the Linux
+runner even though the artifacts are correct. Test execution is the job of the
+separate `build` workflow.
+
 ## Who can release
 
 Only collaborators/organization members with **write access** can trigger it:
@@ -39,9 +44,9 @@ Get the values:
 
 - **User token**: log in at https://central.sonatype.com/ > Account > Generate
   User Token. (Generating a new token invalidates the previous one.)
-- **GPG private key** (export the existing signing key `2EEBCF4339C581B8`):
+- **GPG private key** (export the release signing key):
   ```bash
-  gpg --armor --export-secret-keys 2EEBCF4339C581B8
+  gpg --armor --export-secret-keys <GPG_KEY_ID_OR_EMAIL>
   ```
   Copy the entire output, including the `-----BEGIN/END PGP PRIVATE KEY BLOCK-----`
   lines, into the secret.
@@ -58,7 +63,7 @@ the command line:
 gh secret set MAVEN_CENTRAL_USERNAME --repo ajilach/openhtmltopdf
 gh secret set MAVEN_CENTRAL_PASSWORD --repo ajilach/openhtmltopdf
 gh secret set MAVEN_GPG_PASSPHRASE  --repo ajilach/openhtmltopdf
-gpg --armor --export-secret-keys 2EEBCF4339C581B8 \
+gpg --armor --export-secret-keys <GPG_KEY_ID_OR_EMAIL> \
   | gh secret set MAVEN_GPG_PRIVATE_KEY --repo ajilach/openhtmltopdf
 ```
 
@@ -97,111 +102,103 @@ Check status on https://central.sonatype.com/publishing (it takes around 15min. 
 
 # Maven Central Distribution Guide
 
-This document summarizes the process of publishing this fork to Maven Central.
+This document summarizes the process of publishing this project to Maven Central.
+Keep account names, token values, private key material, passphrases, local machine
+paths, and deployment IDs out of this public file.
 
 ## Project Configuration
 
-**GroupId**: `io.github.rgquiet.openhtmltopdf`
-**Current Version**: `1.0.11`
-**Namespace**: `io.github.rgquiet` (verified via GitHub)
+The Maven coordinates and current version are defined in the parent `pom.xml`.
+Use that file as the source of truth before publishing.
 
-## Prerequisites Completed
+## Prerequisites
 
 ### 1. GPG Key Setup
 
-Generated and configured GPG signing key for artifact verification:
+A release signing key must exist and its public key must be published to a public
+keyserver accepted by Maven Central.
 
 ```bash
-# Install GPG (macOS)
+# Install GPG, if needed
 brew install gnupg
 
-# Generate key (already done)
+# Generate a key, if needed
 gpg --full-generate-key
 
-# Key details
-Key ID: 2EEBCF4339C581B8
-Published to: keys.openpgp.org
+# Export the private key only when setting the GitHub Actions secret
+gpg --armor --export-secret-keys <GPG_KEY_ID_OR_EMAIL>
 ```
 
 ### 2. Maven Central Registration
 
-- Registered at: https://central.sonatype.com/
-- Signed in with GitHub account (rgquiet)
-- Namespace `io.github.rgquiet` automatically verified
-- Generated user token for deployment credentials
+- Register at https://central.sonatype.com/
+- Verify the namespace used by this project
+- Generate a user token for deployment credentials
 
-### 3. Maven Settings Configuration
+### 3. Maven Settings Configuration for Local Fallback
 
-Created `~/.m2/private_settings.xml` with:
-- Server credentials (id: `central`)
-- GPG configuration (keyname, passphrase)
-- Active profile for GPG signing
+If using the local fallback flow, create a private Maven settings file outside the
+repository with:
+- Server credentials using the same id configured by the publishing plugin
+- GPG configuration for the release signing key
+- An active profile for GPG signing
+
+Never commit this settings file or any generated secret material.
 
 ## POM Configuration
 
 ### Parent POM (`pom.xml`)
 
 Key configurations:
-1. **GroupId changed** from `com.openhtmltopdf` to `io.github.rgquiet.openhtmltopdf`
-2. **ArtifactId changed** from `openhtmltopdf-parent` to `openhtmltopdf`
-3. **Added central-publishing-maven-plugin** (version 0.9.0)
-   - `publishingServerId`: central
-   - `autoPublish`: true
-4. **Removed distributionManagement** section (not needed with new plugin)
-5. **Configured GPG plugin** in release profile
+1. Project Maven coordinates are defined in the parent POM
+2. `central-publishing-maven-plugin` handles publication
+   - `publishingServerId`: `central`
+   - `autoPublish`: `true`
+3. `distributionManagement` is not needed with the Central Publishing plugin
+4. GPG signing is configured in the release profile
 
 ### Child Module POMs
 
-All 12 child modules updated:
-1. Parent reference updated to new groupId/artifactId
-2. Version updated to 1.0.11
-3. **Critical**: Removed conflicting `distributionManagement` sections
+Child modules should inherit the parent coordinates and publishing configuration.
+They should not define conflicting `distributionManagement` sections.
 
 ## Common Issues Encountered and Solutions
 
 ### Issue 1: 401 Unauthorized Error
 
-**Cause**: Child modules had their own `distributionManagement` sections pointing to old OSSRH URLs with `id=ossrh`, which conflicted with the parent's central-publishing-maven-plugin configuration.
+**Cause**: Module POMs define their own `distributionManagement` sections or use a
+server id that does not match the publishing plugin configuration.
 
-**Solution**: Removed all `distributionManagement` sections from child POMs. The central-publishing-maven-plugin in the parent POM handles all deployments.
+**Solution**: Remove module-level `distributionManagement` sections and ensure the
+Maven settings server id matches the plugin's `publishingServerId`.
 
 ### Issue 2: Wrong Server ID
 
-**Cause**: Settings.xml had `id=${server}` instead of `id=central`.
+**Cause**: The Maven settings file uses a server id different from `central`.
 
-**Solution**: Changed server ID to `central` to match the `publishingServerId` in the plugin configuration.
+**Solution**: Use server id `central`, matching the `publishingServerId` in the
+plugin configuration.
 
 ### Issue 3: Parent Reference Mismatch
 
-**Cause**: Child POMs referenced old parent groupId `com.openhtmltopdf` and artifactId `openhtmltopdf-parent`.
+**Cause**: Child POMs reference stale parent coordinates.
 
-**Solution**: Updated all child POMs using sed commands:
-```bash
-sed -i '' 's|<groupId>com.openhtmltopdf</groupId>|<groupId>io.github.rgquiet.openhtmltopdf</groupId>|g' pom.xml
-sed -i '' 's|<artifactId>openhtmltopdf-parent</artifactId>|<artifactId>openhtmltopdf</artifactId>|g' pom.xml
-```
+**Solution**: Update child POM parent references to match the current parent POM.
 
 ## Deployment Process
 
 ### Command
 ```bash
-mvn clean deploy -P release -s ~/.m2/private_settings.xml
+mvn clean deploy -P release -s /path/to/private_settings.xml
 ```
 
 ### What Happens
-1. Builds all 13 modules
+1. Builds all modules
 2. Runs tests
 3. Generates sources and javadoc JARs
-4. Signs all artifacts with GPG (via release profile)
-5. Uploads to Maven Central via central-publishing-maven-plugin
-6. Auto-publishes to Maven Central (typically takes 15-30 minutes)
-
-### First Successful Deployment
-- Date: 2026-01-13
-- Version: 1.0.11
-- Deployment ID: 50602863-eb9c-45e5-ad36-405b4fe9c075
-- Status: Published successfully
-- All 14 components validated
+4. Signs all artifacts with GPG via the release profile
+5. Uploads to Maven Central via `central-publishing-maven-plugin`
+6. Auto-publishes to Maven Central, typically after a short delay
 
 ## Important Notes
 

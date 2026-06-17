@@ -48,7 +48,11 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - name: Publish to Maven Central
-        run: mvn -B -ntp clean deploy -P release
+        # Tests are run by the separate "build" workflow. They are skipped here
+        # because the visual regression tests in openhtmltopdf-examples are
+        # font/OS-sensitive and fail on the Linux runner even though the
+        # artifacts themselves are correct. Skipping keeps releases reproducible.
+        run: mvn -B -ntp clean deploy -P release -DskipTests
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
