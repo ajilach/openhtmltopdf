@@ -20,7 +20,8 @@ Maven_Ant_Builder.launch
 /openhtmltopdf-core/nbproject/
 /.vscode/
 /.metadata/
-/.claude/
+/.claude/*
+!/.claude/skills/
 /CLAUDE.md
 /build-and-sync-m2.sh
 /.run/
