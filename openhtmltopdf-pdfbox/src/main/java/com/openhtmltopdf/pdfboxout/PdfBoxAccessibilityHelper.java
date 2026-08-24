@@ -1196,17 +1196,23 @@ public class PdfBoxAccessibilityHelper {
         /* End Redacto Change */
 
         /* Start Redacto Change */
-        // One element must map to exactly ONE structure element. Generated content
-        // (::before / ::after) is laid out in an extra box that still reports the
-        // ORIGINATING element: a `li::before` yields both the real BlockBox and an
-        // InlineLayoutBox for the same <li>. Without this guard the second box asks
-        // the tag supplier for another LI, which lands in the real LI's LBody
-        // (L > LI > LBody > LI) and fails PDF/UA-1 7.2 t17. The pseudo marker is not
-        // usable here — Box.getPseudoElementOrClass() is set on the InlineBox, not on
-        // the InlineLayoutBox that reaches this method — so key off the element
-        // identity of an ancestor box instead. The generated content then becomes
-        // passthrough and its text joins the element's existing structure element.
-        if (child == null && hasAncestorBoxForSameElement(box)) {
+        // Generated content (::before / ::after) is laid out in an extra box that
+        // still reports the ORIGINATING element, so without a guard a `li::before`
+        // asks the tag supplier for a SECOND LI, which lands in the real LI's LBody
+        // (L > LI > LBody > LI) and fails PDF/UA-1 7.2 t17.
+        //
+        // Block-level generated content carries the pseudo marker, so it can be
+        // recognised directly. Inline generated content cannot: the marker is set on
+        // the InlineBox while the box arriving here is the InlineLayoutBox, where it
+        // is null. For that case fall back to element identity — but ONLY for
+        // inline-level boxes. Block-level boxes must keep creating their own
+        // structure elements: a table repeated over a page break legitimately
+        // produces several boxes for the same element, and turning those into
+        // passthrough leaves content items without a parent (NPE in
+        // finishNumberTree).
+        if (child == null &&
+            (box.getPseudoElementOrClass() != null ||
+             (!(box instanceof BlockBox) && hasAncestorBoxForSameElement(box)))) {
             child = new PassthroughStructualElement();
         }
         /* End Redacto Change */
