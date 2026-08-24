@@ -1195,6 +1195,22 @@ public class PdfBoxAccessibilityHelper {
         }
         /* End Redacto Change */
 
+        /* Start Redacto Change */
+        // One element must map to exactly ONE structure element. Generated content
+        // (::before / ::after) is laid out in an extra box that still reports the
+        // ORIGINATING element: a `li::before` yields both the real BlockBox and an
+        // InlineLayoutBox for the same <li>. Without this guard the second box asks
+        // the tag supplier for another LI, which lands in the real LI's LBody
+        // (L > LI > LBody > LI) and fails PDF/UA-1 7.2 t17. The pseudo marker is not
+        // usable here — Box.getPseudoElementOrClass() is set on the InlineBox, not on
+        // the InlineLayoutBox that reaches this method — so key off the element
+        // identity of an ancestor box instead. The generated content then becomes
+        // passthrough and its text joins the element's existing structure element.
+        if (child == null && hasAncestorBoxForSameElement(box)) {
+            child = new PassthroughStructualElement();
+        }
+        /* End Redacto Change */
+
         if (child == null && box.getElement() != null && !box.isAnonymous()) {
             String htmlTag = box.getElement().getTagName();
             Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
@@ -1655,6 +1671,25 @@ public class PdfBoxAccessibilityHelper {
                 }
             }
             current = current.getParent();
+        }
+        return false;
+    }
+
+    /**
+     * Whether an ancestor box already represents the very same DOM element and has
+     * already been given a structure element. Compared by identity, not equality:
+     * one element, one structure element.
+     */
+    private static boolean hasAncestorBoxForSameElement(Box box) {
+        if (box == null || box.getElement() == null) {
+            return false;
+        }
+
+        for (Box ancestor = box.getParent(); ancestor != null; ancestor = ancestor.getParent()) {
+            if (ancestor.getElement() == box.getElement() &&
+                ancestor.getAccessibilityObject() instanceof AbstractStructualElement) {
+                return true;
+            }
         }
         return false;
     }

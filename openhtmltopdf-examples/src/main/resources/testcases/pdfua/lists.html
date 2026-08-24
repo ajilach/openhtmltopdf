@@ -12,6 +12,27 @@
     margin: 0;
     width: 200px;
   }
+  /*
+   * Faked bullets via generated content. This is the common way to style a
+   * bullet, and it used to tag every item as L > LI > LBody > LI (a second LI
+   * for the same element, from the extra box that carries the ::before content),
+   * which fails PDF/UA-1 7.2 t17. Expected: one LI per item.
+   */
+  ul.generated-bullets {
+    list-style: none;
+    padding-left: 0;
+    margin-left: 10px;
+  }
+  ul.generated-bullets li::before {
+    content: '\2013';
+    margin-right: 0.7em;
+  }
+  ul.generated-suffix {
+    list-style: none;
+  }
+  ul.generated-suffix li::after {
+    content: ' !';
+  }
   </style>
 </head>
 <body style="font-family: 'TestFont'; font-size: 14px;">
@@ -44,6 +65,23 @@
     <li>Two</li>
     <li>Three</li>
     <li>Four</li>
+  </ul>
+
+  <h2>Bullets from ::before</h2>
+
+  <ul class="generated-bullets">
+    <li>One</li>
+    <li>Two
+      <ul class="generated-bullets">
+        <li>Nested one</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>Suffix from ::after</h2>
+
+  <ul class="generated-suffix">
+    <li>One</li>
   </ul>
 
 </body>
