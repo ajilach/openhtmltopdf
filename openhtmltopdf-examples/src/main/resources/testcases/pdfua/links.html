@@ -17,6 +17,18 @@
 <body style="font-family: 'TestFont'; font-size: 14px;">
   <p>This is a link to <a title="Go to Google!" href="https://google.com">Google (external)</a>.</p>
   <p>This is an internal link to the <a title="Go to end of document." href="#bottom">bottom of the document</a>.</p>
+  <!--
+    Every annotation needs an alternate description (PDF/UA-1 7.18.1), and a link
+    needs it in its Contents key (7.18.5). These cover the description falling
+    back from title to the link text, and to the alt text of a wrapped image.
+  -->
+  <p>A link without a title, described by <a href="https://google.com">its own link text</a>.</p>
+  <p>A link whose text is
+     wrapped over
+     several source lines: <a href="https://google.com">one
+     two
+     three</a>.</p>
+  <p>An image-only link: <a href="https://google.com"><img src="../../demos/images/flyingsaucer.png" alt="Flying Saucer logo" style="width: 20px; height: 20px;"/></a></p>
   <p>This is some text to push the bottom of the document to page 3. OK here is some more and some more!</p>
   <p>Paragraph one. Some text that goes over multiple lines. OK, this is getting to the required length.</p>
   <p>Paragraph two. Some text that goes over multiple lines. OK, this is getting to the required length.</p>

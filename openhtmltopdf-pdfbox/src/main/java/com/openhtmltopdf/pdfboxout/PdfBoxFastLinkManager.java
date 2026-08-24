@@ -33,6 +33,8 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageXYZDestination;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import java.awt.*;
 import java.awt.geom.*;
@@ -45,6 +47,10 @@ import java.util.Map.Entry;
 import java.util.logging.Level;
 
 public class PdfBoxFastLinkManager {
+
+	/* Start Redacto Change */
+	private static final java.util.regex.Pattern WHITESPACE_RUN = java.util.regex.Pattern.compile("\\s+");
+	/* End Redacto Change */
 
 	private final Map<PDPage, Set<String>> _linkTargetAreas;
 	private final SharedContext _sharedContext;
@@ -251,6 +257,8 @@ public class PdfBoxFastLinkManager {
 
                 AnnotationContainer annotContainer = new AnnotationContainer.PDAnnotationLinkContainer(annot);
 
+                setAnnotationDescription(annotContainer, elem, uri);
+
 				if (!placeAnnotation(transform, linkShape, targetArea, annotContainer))
 					return;
 
@@ -274,6 +282,8 @@ public class PdfBoxFastLinkManager {
             }
 
             if (annotContainer != null) {
+                setAnnotationDescription(annotContainer, elem, uri);
+
                 Rectangle2D targetArea = checkLinkArea(page, c, box, pageHeight, transform, linkShape);
 
                 if (targetArea == null) {
@@ -394,6 +404,80 @@ public class PdfBoxFastLinkManager {
         appearanceDictionary.setNormalAppearance(appearanceStream);
         return appearanceDictionary;
     }
+
+    /* Start Redacto Change */
+    /**
+     * PDF/UA-1 7.18.1 requires every visible annotation to carry an alternate
+     * description (a Contents key, or an Alt on the enclosing structure element)
+     * and 7.18.5 requires links to use Contents specifically. Without this a
+     * single <a href> makes the whole document invalid.
+     *
+     * Preference order: what the author wrote in title, else the visible link
+     * text, else the alt text of an image the link wraps (image-only links are
+     * common), and only as a last resort the raw URI, which is poor to listen to
+     * but still better than nothing.
+     */
+    private static void setAnnotationDescription(AnnotationContainer container, Element elem, String uri) {
+        PDAnnotation annot = container.getPdAnnotation();
+
+        if (normalizeDescription(annot.getContents()) != null) {
+            // Already described, do not overwrite.
+            return;
+        }
+
+        String description = normalizeDescription(elem.getAttribute("title"));
+
+        if (description == null) {
+            description = normalizeDescription(elem.getTextContent());
+        }
+
+        if (description == null) {
+            description = firstImageAlt(elem);
+        }
+
+        if (description == null) {
+            description = normalizeDescription(uri);
+        }
+
+        if (description != null) {
+            annot.setContents(description);
+        }
+    }
+
+    /**
+     * Collapses whitespace, since link text is usually wrapped across source
+     * lines and would otherwise be read out with the newlines in it.
+     *
+     * @return the collapsed text, or null when there was nothing usable.
+     */
+    private static String normalizeDescription(String text) {
+        if (text == null) {
+            return null;
+        }
+
+        String normalized = WHITESPACE_RUN.matcher(text).replaceAll(" ").trim();
+
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private static String firstImageAlt(Element elem) {
+        NodeList images = elem.getElementsByTagName("img");
+
+        for (int i = 0; i < images.getLength(); i++) {
+            Node image = images.item(i);
+
+            if (image instanceof Element) {
+                String alt = normalizeDescription(((Element) image).getAttribute("alt"));
+
+                if (alt != null) {
+                    return alt;
+                }
+            }
+        }
+
+        return null;
+    }
+    /* End Redacto Change */
 
 	private static boolean isURI(String uri) {
 		try {
