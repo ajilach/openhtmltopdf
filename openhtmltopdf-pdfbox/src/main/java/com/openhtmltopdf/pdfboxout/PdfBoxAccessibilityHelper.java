@@ -248,6 +248,21 @@ public class PdfBoxAccessibilityHelper {
                 return;
             }
 
+            // Redacto: If this box is a descendant of a <div class="redacto-checkbox-radio-option">,
+            // never create a DIV (or per-line fragment) in the structure tree. Instead, route ALL of
+            // it - regardless of how many physical lines the label wraps into, and regardless of
+            // whether this particular fragment would otherwise hit the line-box skip case below -
+            // into ONE shared /P element for the whole option, so assistive technology reads the
+            // wrapped label as a single block. The wrapper is cached on the option box itself
+            // (see PassthroughStructualElement#redactoPWrapper) so every line reuses the same /P
+            // instead of each line creating (and being isolated in) its own.
+            Box redactoAncestorBox = findRedactoCheckboxRadioOptionAncestorBox(child.box);
+            if (redactoAncestorBox != null) {
+                GenericStructualElement pWrapper = getOrCreateRedactoCheckboxPWrapper(redactoAncestorBox, parent);
+                finishTreeItems(child.children, pWrapper);
+                return;
+            }
+
             if (child.box instanceof LineBox ||
                 (child.box instanceof InlineLayoutBox &&
                     child.children.size() == 1 &&
@@ -257,24 +272,6 @@ public class PdfBoxAccessibilityHelper {
                 // LineBox and a single InlineText.
                 finishTreeItems(child.children, parent);
             } else {
-                // Redacto: If this box is inside a <div class="redacto-checkbox-radio-option">, never create a DIV in the structure tree.
-                // Instead, wrap the children in a /P element so they stay grouped together.
-                if (isInsideRedactoCheckboxRadioOption(child.box)) {
-                    GenericStructualElement pWrapper = new GenericStructualElement() {
-                        @Override
-                        String getPdfTag() {
-                            return StandardStructureTypes.P;
-                        }
-                    };
-                    pWrapper.box = null;
-                    pWrapper.page = parent.page;
-                    pWrapper.parent = parent;
-                    pWrapper.createPdfStrucureElement(parent, pWrapper);
-
-                    finishTreeItems(child.children, pWrapper);
-                    return;
-                }
-
                 createPdfStrucureElement(parent, child);
 
                 handleGlobalAttributes();
@@ -288,6 +285,14 @@ public class PdfBoxAccessibilityHelper {
     /* Start Redacto change */
     private static class PassthroughStructualElement extends AbstractStructualElement {
         final List<AbstractTreeItem> children = new ArrayList<>();
+
+        // Lazily created the first time any descendant line fragment of a
+        // <div class="redacto-checkbox-radio-option"> needs a shared /P wrapper.
+        // Cached here (one instance per option box, for the box's lifetime) so that
+        // every wrapped line of the option's label is appended to the SAME /P instead
+        // of each line creating (and being isolated in) its own /P - see
+        // GenericStructualElement#finish and #getOrCreateRedactoCheckboxPWrapper.
+        GenericStructualElement redactoPWrapper;
 
         @Override
         String getPdfTag() {
@@ -1572,19 +1577,67 @@ public class PdfBoxAccessibilityHelper {
     }
 
 
-    /* Start Redacto Change - detect if a box is inside a <div class="redacto-checkbox-radio-option"> ancestor */
-    private static boolean isInsideRedactoCheckboxRadioOption(Box box) {
+    /* Start Redacto Change - find the nearest <div class="redacto-checkbox-radio-option"> ancestor box, if any */
+    private static Box findRedactoCheckboxRadioOptionAncestorBox(Box box) {
         Box current = box;
         while (current != null) {
             if (current.getElement() != null) {
                 String tag = current.getElement().getTagName();
                 if ("div".equals(tag) && elementHasClass(current.getElement(), "redacto-checkbox-radio-option")) {
-                    return true;
+                    return current;
                 }
             }
             current = current.getParent();
         }
-        return false;
+        return null;
+    }
+
+    /*
+     * Returns the single shared /P structure element for the given
+     * <div class="redacto-checkbox-radio-option"> box, creating it (and attaching it under
+     * `parent`) the first time it is needed, and reusing it for every subsequent line fragment
+     * of that same option. See PassthroughStructualElement#redactoPWrapper for why the cache
+     * lives on the option's own accessibility object rather than in a separate map: it is
+     * created once per box for the lifetime of this render, with no extra bookkeeping needed.
+     */
+    private static GenericStructualElement getOrCreateRedactoCheckboxPWrapper(Box redactoAncestorBox, AbstractStructualElement parent) {
+        Object accessibilityObject = redactoAncestorBox.getAccessibilityObject();
+
+        if (accessibilityObject instanceof PassthroughStructualElement) {
+            PassthroughStructualElement optionElement = (PassthroughStructualElement) accessibilityObject;
+
+            if (optionElement.redactoPWrapper == null) {
+                GenericStructualElement pWrapper = new GenericStructualElement() {
+                    @Override
+                    String getPdfTag() {
+                        return StandardStructureTypes.P;
+                    }
+                };
+                pWrapper.box = null;
+                pWrapper.page = parent.page;
+                pWrapper.parent = parent;
+                pWrapper.createPdfStrucureElement(parent, pWrapper);
+
+                optionElement.redactoPWrapper = pWrapper;
+            }
+
+            return optionElement.redactoPWrapper;
+        }
+
+        // Defensive fallback: the option box should always have a PassthroughStructualElement
+        // (see createStructureItem), but if that ever changes, fall back to the previous
+        // behaviour of a fresh, unshared /P rather than throwing.
+        GenericStructualElement pWrapper = new GenericStructualElement() {
+            @Override
+            String getPdfTag() {
+                return StandardStructureTypes.P;
+            }
+        };
+        pWrapper.box = null;
+        pWrapper.page = parent.page;
+        pWrapper.parent = parent;
+        pWrapper.createPdfStrucureElement(parent, pWrapper);
+        return pWrapper;
     }
 
     /*
