@@ -3,6 +3,8 @@ build
 **/**.iml
 *.ipr
 .idea
+/.vscode/
+/.metadata/
 dist
 target
 **/*.releaseBackup
@@ -18,10 +20,9 @@ tags
 maven-eclipse.xml
 Maven_Ant_Builder.launch
 /openhtmltopdf-core/nbproject/
-/.vscode/
-/.metadata/
+/CLAUDE.md
 /.claude/*
 !/.claude/skills/
-/CLAUDE.md
-/build-and-sync-m2.sh
+/.pi/
 /.run/
+/build-and-sync-m2.sh
