@@ -194,6 +194,11 @@ public class PdfBoxAccessibilityHelper {
                 if (box.getLayer() != null) {
                     return StandardStructureTypes.SECT;
                 } else if (box.isAnonymous()) {
+                    /* Start Redacto Change - an anonymous block that holds only lines of text is a paragraph */
+                    if (isAnonymousTextBlock(box)) {
+                        return StandardStructureTypes.P;
+                    }
+                    /* End Redacto Change */
                     return guessBoxTag(box);
                 } else if (box.getElement() != null) {
                     String htmlTag = box.getElement().getTagName();
@@ -1075,6 +1080,29 @@ public class PdfBoxAccessibilityHelper {
         _od.getWriter().getDocumentCatalog().getStructureTreeRoot().setParentTreeNextKey(i);
         _od.getWriter().getDocumentCatalog().getStructureTreeRoot().setParentTree(numberTreeNode);
     }
+
+    /* Start Redacto Change - anonymous text blocks are paragraphs, not grouping elements.
+     * Mixed content such as <li>text<ul>...</ul></li> wraps the text in an anonymous block box.
+     * Tagged as Div, its text becomes content directly inside a grouping element, which PAC
+     * reports as "Content in a possibly inadmissible location". Tagged as P it is ordinary
+     * paragraph text. Left alone inside a p or heading, where a P would nest in a P. */
+    private static boolean isAnonymousTextBlock(Box box) {
+        if (!(box instanceof BlockBox) || ((BlockBox) box).isInline() ||
+            ((BlockBox) box).getChildrenContentType() != BlockBox.ContentType.INLINE) {
+            return false;
+        }
+        Box ancestor = box.getParent();
+        while (ancestor != null && (ancestor.isAnonymous() || ancestor.getElement() == null)) {
+            ancestor = ancestor.getParent();
+        }
+        if (ancestor == null) {
+            return true;
+        }
+        String tag = ancestor.getElement().getTagName();
+        return !(tag.equals("p") || tag.equals("caption") ||
+            (tag.length() == 2 && tag.charAt(0) == 'h' && tag.charAt(1) >= '1' && tag.charAt(1) <= '6'));
+    }
+    /* End Redacto Change */
 
     private static String guessBoxTag(Box box) {
         if (box instanceof BlockBox) {
