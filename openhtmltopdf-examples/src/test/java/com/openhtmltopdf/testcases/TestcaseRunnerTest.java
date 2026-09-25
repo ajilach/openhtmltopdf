@@ -168,10 +168,14 @@ public class TestcaseRunnerTest {
     public void testMultiColumnLayout() throws IOException {
         /*
          * CSS3 multi-column layout
+         *
+         * Six pages, not the seven this expected before balancing was confined to the last
+         * fragment: css-multicol-1 section 3.3 fills every fragment but the last, and five full
+         * pages plus a balanced sixth hold what six short pages plus a balanced seventh used to.
          */
         String test = "multi-column-layout";
         runTestCase(test);
-        confirmPages(test, 7);
+        confirmPages(test, 6);
     }
 
     @Test

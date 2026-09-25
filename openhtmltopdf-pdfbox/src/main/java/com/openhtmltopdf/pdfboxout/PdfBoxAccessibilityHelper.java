@@ -194,6 +194,13 @@ public class PdfBoxAccessibilityHelper {
                 if (box.getLayer() != null) {
                     return StandardStructureTypes.SECT;
                 } else if (box.isAnonymous()) {
+                    /* Start Redacto Change - an anonymous block that holds only lines of text is a paragraph,
+                     * or a Span of the paragraph or heading it sits in */
+                    String textTag = anonymousTextBlockTag(box);
+                    if (textTag != null) {
+                        return textTag;
+                    }
+                    /* End Redacto Change */
                     return guessBoxTag(box);
                 } else if (box.getElement() != null) {
                     String htmlTag = box.getElement().getTagName();
@@ -1081,6 +1088,31 @@ public class PdfBoxAccessibilityHelper {
         _od.getWriter().getDocumentCatalog().getStructureTreeRoot().setParentTree(numberTreeNode);
     }
 
+    /* Start Redacto Change - anonymous text blocks are paragraphs, not grouping elements.
+     * Mixed content such as <li>text<ul>...</ul></li> wraps the text in an anonymous block box.
+     * Tagged as Div, its text becomes content directly inside a grouping element, which PAC
+     * reports as "Content in a possibly inadmissible location". Tagged as P it is ordinary
+     * paragraph text. Inside a p or heading (a <br> set display: block splits one) a P would nest
+     * in a P, so there it is a Span. Null when the box does not hold only lines of text. */
+    private static String anonymousTextBlockTag(Box box) {
+        if (!(box instanceof BlockBox) || ((BlockBox) box).isInline() ||
+            ((BlockBox) box).getChildrenContentType() != BlockBox.ContentType.INLINE) {
+            return null;
+        }
+        Box ancestor = box.getParent();
+        while (ancestor != null && (ancestor.isAnonymous() || ancestor.getElement() == null)) {
+            ancestor = ancestor.getParent();
+        }
+        if (ancestor == null) {
+            return StandardStructureTypes.P;
+        }
+        String tag = ancestor.getElement().getTagName();
+        boolean inParagraph = tag.equals("p") || tag.equals("caption") ||
+            (tag.length() == 2 && tag.charAt(0) == 'h' && tag.charAt(1) >= '1' && tag.charAt(1) <= '6');
+        return inParagraph ? StandardStructureTypes.SPAN : StandardStructureTypes.P;
+    }
+    /* End Redacto Change */
+
     private static String guessBoxTag(Box box) {
         if (box instanceof BlockBox) {
             BlockBox block = (BlockBox) box;
@@ -1092,10 +1124,39 @@ public class PdfBoxAccessibilityHelper {
             }
         } else {
             /* Start Redacto Change - use DIV instead of SPAN for anonymous InlineLayoutBox, Check for side effects */
+            /* ...except inside a text block (p, heading, list item, cell), where a Div is never admissible
+             * and its text is what PAC reports as "Content in a possibly inadmissible location": an
+             * inline box there is a Span. Happens when the box is not collapsed into its line -- a
+             * <strong> holding a <br>, a heading line painted on two pages. */
+            if (isInTextBlock(box)) {
+                return StandardStructureTypes.SPAN;
+            }
             return StandardStructureTypes.DIV;
             /* End Redacto Change */
         }
     }
+
+    /* Start Redacto Change - the nearest block around an inline box is a text block */
+    private static boolean isInTextBlock(Box box) {
+        Box ancestor = box.getParent();
+        while (ancestor != null && !(ancestor instanceof BlockBox && !((BlockBox) ancestor).isInline())) {
+            ancestor = ancestor.getParent();
+        }
+        if (ancestor == null) {
+            return false;
+        }
+        if (ancestor.isAnonymous() || ancestor.getElement() == null) {
+            return anonymousTextBlockTag(ancestor) != null;
+        }
+        switch (ancestor.getElement().getTagName()) {
+            case "p": case "h1": case "h2": case "h3": case "h4": case "h5": case "h6":
+            case "li": case "td": case "th": case "caption": case "dt": case "dd":
+                return true;
+            default:
+                return false;
+        }
+    }
+    /* End Redacto Change */
 
     private static void finishTreeItems(List<? extends AbstractTreeItem> children, AbstractStructualElement parent) {
         for (AbstractTreeItem child : children) {

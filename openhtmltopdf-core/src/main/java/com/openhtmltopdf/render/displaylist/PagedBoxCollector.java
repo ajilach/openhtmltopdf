@@ -509,7 +509,8 @@ public class PagedBoxCollector {
         PageBox pageBox = getPageBox(basePageNumber);
         Rectangle pageClip = pageResult.getContentWindowOnDocument(pageBox, c);
 
-        if (intersectsAggregateBounds(c, pageClip, container)) {
+        if (intersectsAggregateBounds(c, pageClip, container) &&
+            lineBoxOnPage(c, pageClip, container)) {
             pageResult.addInline(container);
 
             // Recursively add all children of the line box to the inlines list.
@@ -687,6 +688,32 @@ public class PagedBoxCollector {
         	((TableCellBox) container).hasCollapsedPaintingBorder()) {
         	pageResult.addTableCell((TableCellBox) container);
         }
+    }
+
+    /**
+     * Whether the line box itself (its layout rectangle, not the painting overflow of its
+     * inline content) lies on the page. A line that the paginator moved to the top of page n+1
+     * starts exactly at the bottom edge of page n's content window. When the font's content area
+     * is taller than the line-height (e.g. 9.02pt of glyph box in a 9pt line), the aggregate
+     * paint bounds reach a dot or a few above the line box and so into page n's window. The
+     * print clip hides that copy, but it is still painted, and in a tagged PDF it gets an MCID
+     * and creates its structure element on page n: the line is read twice and its block lands
+     * in the structure tree before the rest of page n+1. Here such a line is left to page n+1.
+     * <p>
+     * A line box with no width or height (nothing to go by) keeps the aggregate test alone.
+     */
+    private boolean lineBoxOnPage(CssContext c, Shape clip, LineBox line) {
+        if (clip == null) {
+            return true;
+        }
+
+        Rectangle lineBounds = line.getBorderBox(c);
+
+        if (lineBounds.width <= 0 || lineBounds.height <= 0) {
+            return true;
+        }
+
+        return boxIntersects(c, clip, line, lineBounds);
     }
 
     private boolean intersectsAggregateBounds(CssContext c, Shape clip, Box box) {

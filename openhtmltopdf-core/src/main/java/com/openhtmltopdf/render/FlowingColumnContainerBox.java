@@ -70,10 +70,33 @@ public class FlowingColumnContainerBox extends BlockBox {
     private static class LayoutRun {
         private final int finalHeight;
         private final int columnsUsed;
+        private final int lastPageIdx;
 
-        private LayoutRun(int finalHeight, int columnsUsed) {
+        private LayoutRun(int finalHeight, int columnsUsed, int lastPageIdx) {
             this.finalHeight = finalHeight;
             this.columnsUsed = columnsUsed;
+            this.lastPageIdx = lastPageIdx;
+        }
+    }
+
+    /**
+     * The height the columns of the balanced fragment are capped to, and which fragment that is.
+     * CSS Multi-column Layout balances the LAST fragment only; see {@link #findBalancedColumnHeight}.
+     */
+    private static class BalanceTarget {
+        private static final BalanceTarget NONE = new BalanceTarget(0, -1);
+
+        private final int height;
+        private final int pageIdx;
+
+        private BalanceTarget(int height, int pageIdx) {
+            this.height = height;
+            this.pageIdx = pageIdx;
+        }
+
+        /** The cap for a column on this page: none unless the page is the balanced fragment. */
+        private int heightFor(int candidatePageIdx) {
+            return candidatePageIdx == pageIdx ? height : 0;
         }
     }
     
@@ -212,14 +235,14 @@ public class FlowingColumnContainerBox extends BlockBox {
         return metrics;
     }
 
-    private LayoutRun simulateColumnLayout(LayoutContext c, List<BreakMetrics> breaks, int columnCount, int balancedHeight, boolean allowPageAdd) {
+    private LayoutRun simulateColumnLayout(LayoutContext c, List<BreakMetrics> breaks, int columnCount, BalanceTarget balance, boolean allowPageAdd) {
         final int startY = this.getAbsY();
         final List<PageBox> pages = c.getRootLayer().getPages();
         int pageIdx = findPageIndex(pages, startY);
         int colIdx = 0;
         int copyY = startY;
         int pasteY = startY;
-        int maxColHeight = getMaxColumnHeight(pages.get(pageIdx), pasteY, balancedHeight);
+        int maxColHeight = getMaxColumnHeight(pages.get(pageIdx), pasteY, balance.heightFor(pageIdx));
         int finalHeight = 0;
 
         for (int i = 0; i < breaks.size(); i++) {
@@ -242,7 +265,7 @@ public class FlowingColumnContainerBox extends BlockBox {
 
                     if (newPageIdx >= pages.size()) {
                         if (!allowPageAdd) {
-                            return new LayoutRun(finalHeight, newColIdx + 1);
+                            return new LayoutRun(finalHeight, newColIdx + 1, newPageIdx);
                         }
                         c.getRootLayer().addPage(c);
                     }
@@ -252,45 +275,67 @@ public class FlowingColumnContainerBox extends BlockBox {
                     pasteY = needNewPage ? page.getTop() : pasteY;
                     pageIdx = newPageIdx;
                     colIdx = newColIdx;
-                    maxColHeight = getMaxColumnHeight(page, pasteY, balancedHeight);
+                    maxColHeight = getMaxColumnHeight(page, pasteY, balance.heightFor(pageIdx));
                 }
             }
         }
 
-        return new LayoutRun(finalHeight, colIdx + 1);
+        return new LayoutRun(finalHeight, colIdx + 1, pageIdx);
     }
 
-    private int findBalancedColumnHeight(LayoutContext c, Box child, List<BreakMetrics> breaks, int columnCount) {
-        LayoutRun baseline = simulateColumnLayout(c, breaks, columnCount, 0, true);
-        int desiredColumns = baseline.columnsUsed;
+    /**
+     * Finds the height to cap the balanced columns to, and the fragment they are in.
+     *
+     * <p>CSS Multi-column Layout balances the LAST fragment only: "column boxes in the last
+     * fragment are balanced, and all other fragments are filled" (css-multicol-1 section 3.3).
+     * So the cap is searched for, and afterwards applied, on the page the content ends on and
+     * on no other -- every earlier page fills to the page box exactly as column-fill: auto does.
+     *
+     * <p>A single cap shared by every page cannot express this. Where the flow runs over more
+     * than one page the earlier pages are full by construction, so the smallest cap that still
+     * fits the content in the same number of columns is the page height itself: the search
+     * returns a no-op, the last page keeps whatever is left of the flow in its first column,
+     * and the second column stays empty. That was the observed behaviour on a three-page
+     * two-column document -- 78 lines in the left column of the last page and one in the
+     * right, where the last fragment should have held about 40 and 39.
+     */
+    private BalanceTarget findBalancedColumnHeight(LayoutContext c, Box child, List<BreakMetrics> breaks, int columnCount) {
+        // Where the content ends when every column is filled is where the last fragment is,
+        // and filling is what every fragment before it does, so this run is also the layout
+        // of all of them.
+        LayoutRun baseline = simulateColumnLayout(c, breaks, columnCount, BalanceTarget.NONE, true);
+        int balancePageIdx = baseline.lastPageIdx;
 
-        // If the content fits in one full-height column, still split it across the
-        // available columns when column-fill: balance is requested.
-        if (desiredColumns <= 1) {
-            desiredColumns = Math.min(columnCount, breaks.size());
+        // Nothing to balance: a single break opportunity cannot be divided between columns.
+        if (breaks.size() <= 1) {
+            return BalanceTarget.NONE;
         }
 
-        if (desiredColumns <= 1) {
-            return 0;
-        }
-
+        // A column can never be shorter than the tallest thing that has to fit in one.
         int low = 1;
         for (BreakMetrics br : breaks) {
             low = Math.max(low, br.borderBoxHeight);
         }
 
+        // The test is that the content still ENDS on the page it ended on when filled -- not
+        // that it still occupies the same number of columns. Balancing the last fragment uses
+        // more columns than filling it by definition: filling leaves the content in the first
+        // column of that page and balancing spreads it over all of them. Asking for the same
+        // column count therefore rejects every candidate and returns the full page height,
+        // which is how this search used to come back with no balancing at all.
         int high = Math.max(low, child.getHeight());
         while (low < high) {
             int mid = low + ((high - low) / 2);
-            LayoutRun attempt = simulateColumnLayout(c, breaks, columnCount, mid, false);
-            if (attempt.columnsUsed <= desiredColumns) {
+            LayoutRun attempt = simulateColumnLayout(
+                    c, breaks, columnCount, new BalanceTarget(mid, balancePageIdx), false);
+            if (attempt.lastPageIdx <= balancePageIdx) {
                 high = mid;
             } else {
                 low = mid + 1;
             }
         }
 
-        return high;
+        return new BalanceTarget(high, balancePageIdx);
     }
 
     private int adjustColumns(LayoutContext c, Box child, int colGap, int colWidth, int columnCount) {
@@ -306,21 +351,25 @@ public class FlowingColumnContainerBox extends BlockBox {
             return this.getChild().getHeight();
         }
 
-        int balancedHeight = getStyle().isColumnFillAuto() ? 0 : findBalancedColumnHeight(c, child, breaks, columnCount);
-        int firstColumnHeight = getMaxColumnHeight(pages.get(findPageIndex(pages, startY)), this.getChild().getAbsY(), balancedHeight);
+        BalanceTarget balance = getStyle().isColumnFillAuto()
+                ? BalanceTarget.NONE
+                : findBalancedColumnHeight(c, child, breaks, columnCount);
+        int startPageIdx = findPageIndex(pages, startY);
+        int firstColumnHeight = getMaxColumnHeight(
+                pages.get(startPageIdx), this.getChild().getAbsY(), balance.heightFor(startPageIdx));
 
         if (child.getHeight() <= firstColumnHeight && getStyle().isColumnFillAuto()) {
             return child.getHeight();
         }
 
-        int pageIdx = findPageIndex(pages, startY);
+        int pageIdx = startPageIdx;
         int colIdx = 0;
         int finalHeight = 0;
         ColumnPosition current = new ColumnPosition(
                 colIdx,
                 startY,
                 startY,
-                getMaxColumnHeight(pages.get(pageIdx), startY, balancedHeight),
+                getMaxColumnHeight(pages.get(pageIdx), startY, balance.heightFor(pageIdx)),
                 pageIdx);
 
         if (haveFloats) {
@@ -370,7 +419,7 @@ public class FlowingColumnContainerBox extends BlockBox {
                             newColIdx,
                             copyY,
                             pasteY,
-                            getMaxColumnHeight(page, pasteY, balancedHeight),
+                            getMaxColumnHeight(page, pasteY, balance.heightFor(newPageIdx)),
                             newPageIdx);
                     if (haveFloats) {
                         columnMap.put(copyY, current);

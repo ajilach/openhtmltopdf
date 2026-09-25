@@ -49,7 +49,9 @@ public class ConcateOutputTest {
                 renderPDF(testCaseFile, doc);
             }
 
-            assertEquals(27, doc.getNumberOfPages());
+            // 26, not 27: multi-column-layout is one of the concatenated testcases and lost a
+            // page when balancing was confined to the last fragment. See testMultiColumnLayout.
+            assertEquals(26, doc.getNumberOfPages());
 
             doc.save(targetFile);
         }

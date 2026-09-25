@@ -46,6 +46,7 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.text.TextPosition;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -1371,6 +1372,65 @@ public class NonVisualRegressionTest {
 
         assertTrue(TestSupport.comparePdfs(os.toByteArray(), filename));
         assertEquals(111.48, lastContentLine, 0.5);
+    }
+
+    /**
+     * The bottom of the lowest glyph between two x positions on one page, or 0 if there is none.
+     */
+    private static float columnBottom(PDDocument doc, int pageIdx, final float left, final float right) throws IOException {
+        final float[] bottom = { 0 };
+        PDFTextStripper stripper = new PDFTextStripper() {
+            @Override
+            protected void writeString(String text, List<TextPosition> positions) {
+                for (TextPosition tp : positions) {
+                    if (tp.getX() >= left && tp.getX() < right) {
+                        bottom[0] = Math.max(bottom[0], tp.getY());
+                    }
+                }
+            }
+        };
+        stripper.setStartPage(pageIdx + 1);
+        stripper.setEndPage(pageIdx + 1);
+        stripper.getText(doc);
+        return bottom[0];
+    }
+
+    /**
+     * column-fill: balance over a fragmented multi-column box balances the LAST fragment and
+     * fills the ones before it (css-multicol-1 section 3.3).
+     *
+     * <p>Both halves matter and only the pair pins the behaviour down. A single balanced height
+     * shared by every page makes the earlier pages stop short of the page box; searching for
+     * that height against the column COUNT instead of the page the content ends on makes the
+     * last page keep the whole remainder in its first column, because balancing a fragment uses
+     * more columns than filling it by definition.
+     */
+    @Test
+    public void testColumnsBalanceFragmented() throws IOException {
+        try (PDDocument doc = run("text/columns-balance-fragmented")) {
+            int pages = doc.getNumberOfPages();
+            assertTrue("expected a fragmented flow, got " + pages + " page(s)", pages >= 3);
+
+            // 300pt wide, 10pt margins, 20pt gutter => columns at 10..135 and 165..290.
+            float pageBottom = doc.getPage(0).getMediaBox().getHeight() - 10;
+
+            for (int i = 0; i < pages - 1; i++) {
+                float left = columnBottom(doc, i, 10, 135);
+                float right = columnBottom(doc, i, 165, 290);
+                assertTrue("page " + (i + 1) + " left column stops " + (pageBottom - left)
+                        + "pt short of the page box", pageBottom - left < 20);
+                assertTrue("page " + (i + 1) + " right column stops " + (pageBottom - right)
+                        + "pt short of the page box", pageBottom - right < 20);
+            }
+
+            float lastLeft = columnBottom(doc, pages - 1, 10, 135);
+            float lastRight = columnBottom(doc, pages - 1, 165, 290);
+            assertTrue("the last page's second column is empty", lastRight > 0);
+            assertTrue("the last page's columns are " + Math.abs(lastLeft - lastRight)
+                    + "pt apart, which is not balanced", Math.abs(lastLeft - lastRight) < 30);
+            assertTrue("the last page is full, so nothing was balanced",
+                    pageBottom - lastLeft > 20);
+        }
     }
 
     // TODO:
