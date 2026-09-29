@@ -1,0 +1,33 @@
+<html lang="de">
+<head>
+  <title>Foreign passages with their own lang</title>
+  <meta name="subject" content="PDF/UA lang on inline elements"/>
+
+  <style>
+  @page {
+    size: 300px 300px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+    width: 300px;
+  }
+  </style>
+</head>
+<body style="font-family: 'TestFont'; font-size: 14px;">
+<!-- 1: the span is the only inline box on its line around a single text run -->
+<p>Im <span lang="en">SEPA</span> Verfahren.</p>
+
+<!-- 2: a span that wraps over three lines is one element, not one per line -->
+<p>Gemäss <span lang="en">Society for Worldwide Interbank Financial Telecommunication and a few more words</span> gilt.</p>
+
+<!-- 3: a span inside another inline element -->
+<p>Der Code heisst <strong><span lang="en">Bank Identifier Code</span></strong>.</p>
+
+<!-- 4: a cell in its own language -->
+<table><tr><td lang="en">Euronext Paris</td><td>Frankreich</td></tr></table>
+
+<!-- 5: a span in a div's own text, outside any text block -->
+<div>Siehe <span lang="fr">Bourse de Paris</span> hier.</div>
+</body>
+</html>

@@ -4,6 +4,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +63,10 @@ public class PdfBoxAccessibilityHelper {
     private AffineTransform _transform;
 
     private int _runningLevel;
+
+    /* Start Redacto Change - one structure element per inline element with a lang, not one per line */
+    private final Map<org.w3c.dom.Element, AbstractStructualElement> _langInlineElements = new IdentityHashMap<>();
+    /* End Redacto Change */
 
     private static Map<String, Supplier<AbstractStructualElement>> createTagSuppliers() {
         Map<String, Supplier<AbstractStructualElement>> suppliers = new HashMap<>();
@@ -273,7 +278,11 @@ public class PdfBoxAccessibilityHelper {
             if (child.box instanceof LineBox ||
                 (child.box instanceof InlineLayoutBox &&
                     child.children.size() == 1 &&
-                    child.box.getParent() instanceof LineBox)) {
+                    child.box.getParent() instanceof LineBox &&
+                    // Redacto: an inline element with its own lang keeps its structure element, or its
+                    // /Lang is lost - <p>... <span lang="en">SEPA</span> ...</p> is exactly that one
+                    // InlineLayoutBox around one text run on its line.
+                    !hasLangAttribute(child.box))) {
                 // We skip (don't create structure element) line boxes in the tree.
                 // We also skip the common case of a intermediary InlineLayoutBox between the
                 // LineBox and a single InlineText.
@@ -1128,13 +1137,21 @@ public class PdfBoxAccessibilityHelper {
              * and its text is what PAC reports as "Content in a possibly inadmissible location": an
              * inline box there is a Span. Happens when the box is not collapsed into its line -- a
              * <strong> holding a <br>, a heading line painted on two pages. */
-            if (isInTextBlock(box)) {
+            if (isInTextBlock(box) || hasLangAttribute(box)) {
+                // Redacto: an inline box kept for its lang is a Span too, wherever it sits - a Div
+                // holding text directly is PAC's "possibly inadmissible location".
                 return StandardStructureTypes.SPAN;
             }
             return StandardStructureTypes.DIV;
             /* End Redacto Change */
         }
     }
+
+    /* Start Redacto Change - an element that says which language its text is in */
+    private static boolean hasLangAttribute(Box box) {
+        return box.getElement() != null && !box.isAnonymous() && !box.getElement().getAttribute("lang").isEmpty();
+    }
+    /* End Redacto Change */
 
     /* Start Redacto Change - the nearest block around an inline box is a text block */
     private static boolean isInTextBlock(Box box) {
@@ -1488,9 +1505,25 @@ public class PdfBoxAccessibilityHelper {
                 }
                 /* End Redacto Change */
                 AbstractStructualElement struct = (AbstractStructualElement) box.getAccessibilityObject();
+                /* Start Redacto Change - an inline element with a lang that wraps over several lines is
+                 * laid out as one InlineLayoutBox per line. The later ones join the structure element of
+                 * the first, so the element is one Span with one /Lang, as it is one element in the HTML. */
+                if (struct == null && box instanceof InlineLayoutBox && hasLangAttribute(box)) {
+                    struct = _langInlineElements.get(box.getElement());
+                    if (struct != null) {
+                        box.setAccessiblityObject(struct);
+                        return FALSE_TOKEN;
+                    }
+                }
+                /* End Redacto Change */
                 if (struct == null) {
                     struct = createStructureItem(type, box);
                     setupStructureElement(struct, box);
+                    /* Start Redacto Change */
+                    if (struct instanceof GenericStructualElement && box instanceof InlineLayoutBox && hasLangAttribute(box)) {
+                        _langInlineElements.put(box.getElement(), struct);
+                    }
+                    /* End Redacto Change */
                 }
                 return FALSE_TOKEN;
             }

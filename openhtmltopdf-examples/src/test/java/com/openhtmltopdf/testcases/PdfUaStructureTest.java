@@ -227,6 +227,48 @@ public class PdfUaStructureTest {
     }
 
     /**
+     * Every element with its own {@code lang} is one structure element carrying that /Lang.
+     *
+     * <p>PDF/UA-1 7.2 t34 and WCAG 3.1.2 need a change of language inside a text marked on
+     * the structure element around it. The tree skips the InlineLayoutBox between a line and
+     * a single text run, which is exactly what {@code <span lang="en">SEPA</span>} inside a
+     * paragraph is, so without a guard the /Lang went with the skipped box. And an element that
+     * wraps is laid out as one box per line, so it must not become one element per line either:
+     * one element in the HTML, one /Lang in the tree, one Span a screen reader reads out.
+     */
+    @Test
+    public void anElementWithItsOwnLangIsOneStructureElementWithThatLang() throws IOException {
+        try (PDDocument doc = render("lang")) {
+            List<String> langs = new ArrayList<>();
+            List<String> types = new ArrayList<>();
+            collectLangs(doc.getDocumentCatalog().getStructureTreeRoot(), langs, types);
+
+            // Document (de), then the five elements with their own lang in document order.
+            assertEquals("unexpected /Lang elements, types " + types,
+                Arrays.asList("de", "en", "en", "en", "en", "fr"), langs);
+            assertEquals("the wrapped span must be ONE element; types were " + types,
+                Arrays.asList("Document", "Span", "Span", "Span", "TD", "Span"), types);
+        }
+    }
+
+    private static void collectLangs(PDStructureNode node, List<String> langs, List<String> types) {
+        List<Object> kids = node.getKids();
+        if (kids == null) {
+            return;
+        }
+        for (Object kid : kids) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if (element.getLanguage() != null) {
+                    langs.add(element.getLanguage());
+                    types.add(element.getStructureType());
+                }
+                collectLangs(element, langs, types);
+            }
+        }
+    }
+
+    /**
      * A table split over a page break must keep tagging its content.
      *
      * <p>The table and its sections each produce several boxes for one element - one per page
