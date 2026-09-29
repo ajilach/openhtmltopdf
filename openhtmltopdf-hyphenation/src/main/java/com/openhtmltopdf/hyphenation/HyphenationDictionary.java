@@ -31,8 +31,9 @@ import java.util.logging.Logger;
  * safe to share between threads.
  *
  * <p>This class only answers <em>where</em> a word may break. <em>Whether</em> to hyphenate — which
- * elements, the minimum word length, the characters kept whole at either end — is the caller's
- * policy (in CSS terms {@code hyphens} and {@code hyphenate-limit-chars}), not this module's.
+ * elements, the minimum word length, the characters kept whole at either end — is the document's
+ * policy (in CSS terms {@code hyphens} and {@code hyphenate-limit-chars}), which
+ * {@link HyphenationStyle} reads from its stylesheet and {@link Hyphenator} applies.
  *
  * <p><b>Two input formats</b> are read, detected from the content:
  * <ul>

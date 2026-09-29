@@ -14,7 +14,7 @@
   <packaging>jar</packaging>
 
   <name>Openhtmltopdf Hyphenation</name>
-  <description>Open HTML to PDF is a CSS 2.1 renderer written in Java.  This artifact provides Liang hyphenation (break points for a word) with bundled permissively licensed patterns for German (1996 spelling), Spanish and US English. It has no dependencies and does not change the renderer by itself.</description>
+  <description>Open HTML to PDF is a CSS 2.1 renderer written in Java.  This artifact provides Liang hyphenation (break points for a word) with bundled permissively licensed patterns for German (1996 spelling), Spanish and US English, and reads a stylesheet's hyphenation policy (hyphens, hyphenate-limit-chars, --hyphenate-exceptions, per-element lang) to put soft hyphens into text before layout. It has no dependencies and does not change the renderer by itself.</description>
 
   <licenses>
     <license>
@@ -58,6 +58,13 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${open.junit4.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Tests only: a real DOM to resolve the stylesheet policy on. The module itself knows no DOM library. -->
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.14.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
