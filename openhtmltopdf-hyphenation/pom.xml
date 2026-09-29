@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.rgquiet.openhtmltopdf</groupId>
+    <artifactId>openhtmltopdf</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>openhtmltopdf-hyphenation</artifactId>
+
+  <packaging>jar</packaging>
+
+  <name>Openhtmltopdf Hyphenation</name>
+  <description>Open HTML to PDF is a CSS 2.1 renderer written in Java.  This artifact provides Liang hyphenation (break points for a word) with bundled permissively licensed patterns for German (1996 spelling), Spanish and US English, and reads a stylesheet's hyphenation policy (hyphens, hyphenate-limit-chars, --hyphenate-exceptions, per-element lang) to put soft hyphens into text before layout. It has no dependencies and does not change the renderer by itself.</description>
+
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License (LGPL), version 2.1 or later</name>
+      <url>http://www.gnu.org/licenses/lgpl.html</url>
+      <comments>The Java code. The bundled hyphenation patterns keep their own licences (MIT and a permissive TeX notice), see META-INF/THIRD-PARTY-NOTICES.txt.</comments>
+    </license>
+  </licenses>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${open.junit4.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- Tests only: a real DOM to resolve the stylesheet policy on. The module itself knows no DOM library. -->
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.14.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <directory>../</directory>
+        <targetPath>META-INF</targetPath>
+        <includes>
+          <include>LICENSE*</include>
+        </includes>
+      </resource>
+    </resources>
+
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <instructions>
+            <Export-Package>com.openhtmltopdf.hyphenation</Export-Package>
+          </instructions>
+        </configuration>
+
+        <executions>
+          <execution>
+            <id>bundle-manifest</id>
+            <phase>process-classes</phase>
+              <goals>
+                <goal>manifest</goal>
+              </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+
+  </build>
+</project>

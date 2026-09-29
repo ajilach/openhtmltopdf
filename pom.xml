@@ -55,6 +55,7 @@
         <module>openhtmltopdf-latex-support</module>
         <module>openhtmltopdf-pdfa-testing</module>
         <module>openhtmltopdf-templates</module>
+        <module>openhtmltopdf-hyphenation</module>
     </modules>
     <profiles>
         <profile>

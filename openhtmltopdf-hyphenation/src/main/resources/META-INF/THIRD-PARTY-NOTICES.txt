@@ -1,0 +1,124 @@
+openhtmltopdf-hyphenation - third-party notices
+===============================================
+
+The Java code of this artifact is under the licence of the openhtmltopdf project (LGPL 2.1 or
+later, see META-INF/LICENSE*). The hyphenation patterns it bundles are third-party data, shipped
+UNMODIFIED in com/openhtmltopdf/hyphenation/, each under its own licence as listed below. Every
+file keeps its own header, which is the authoritative statement of its copyright and licence; the
+English file's notice is in the README shipped beside it.
+
+No file in this artifact is under the LPPL, the LGPL or the GPL.
+
+
+1. com/openhtmltopdf/hyphenation/hyph-de-1996.tex
+-------------------------------------------------
+Language:   German, reformed spelling (1996/2006), hyph-utf8 tag "de-1996"
+Title:      German Hyphenation Patterns (Reformed Orthography, 2006)
+Version:    2024-02-28 (pattern data by the Deutschsprachige Trennmustermannschaft,
+            wortliste commit 304aaa2188a75e57afe36bad0443d90a9c715b8e)
+Source:     https://github.com/hyphenation/tex-hyphen
+            hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-de-1996.tex
+            last changed in tex-hyphen commit 6d38cfcb04af70a57607bd8f698938755f1b68b3
+            (2025-02-20); byte-identical to tex-hyphen master
+            5684c0f51c0b81133db2efbe60a408b4155a3ff5 as fetched 2026-09-29
+SHA-256:    374ad1ce3263f8a2791ec070ef9b516c532dae64456f3fb656e617e8ae53a9d3
+Licence:    MIT
+
+  Copyright (c) 2013-2024
+  Stephan Hennig, Werner Lemberg, Günter Milde,
+  Sander van Geloven, Georg Pfeiffer, Gisbert W. Selke,
+  Tobias Wendorf, Keno Wehr
+
+  Permission is hereby granted, free of charge, to any person
+  obtaining a copy of this software and associated documentation
+  files (the “Software”), to deal in the Software without
+  restriction, including without limitation the rights to use,
+  copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following
+  conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  OTHER DEALINGS IN THE SOFTWARE.
+
+
+2. com/openhtmltopdf/hyphenation/hyph-es.tex
+--------------------------------------------
+Language:   Spanish, hyph-utf8 tag "es"
+Title:      Hyphenation patterns for Spanish
+Version:    5.0 2019-09-24 (Javier Bezos, https://github.com/jbezos/tex-hyphen-spanish)
+Source:     https://github.com/hyphenation/tex-hyphen
+            hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-es.tex
+            last changed in tex-hyphen commit 673f7b33e664b141432ba6d78d2caa686ea5317f
+            (2019-12-24); byte-identical to tex-hyphen master
+            5684c0f51c0b81133db2efbe60a408b4155a3ff5 as fetched 2026-09-29
+SHA-256:    6a2e5f39a991a23d1cd8a23dbd0f6fe96a9f07561a6695f4f3320f47030e236c
+Licence:    MIT/X11
+
+  Copyright (C) 1993, 1997 Javier Bezos, 2001-2019 Javier Bezos, CervanTeX
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+  (The file also credits Francesc Carmona, "for his permission to steal parts of
+  his work without restrictions".)
+
+
+3. com/openhtmltopdf/hyphenation/hyph_en_US.dic
+   com/openhtmltopdf/hyphenation/README_hyph_en_US.txt
+------------------------------------------------------
+Language:   English (US)
+Title:      hyph_en_US.dic - American English hyphenation patterns for OpenOffice.org
+Version:    2011-10-07 (conversion by László Németh)
+Source:     https://github.com/LibreOffice/dictionaries  en/hyph_en_US.dic and
+            en/README_hyph_en_US.txt, last changed in commit
+            a4473e06b56bfe35187e302754f6baaa8d75e54f (2012-10-16); both files
+            byte-identical to LibreOffice dictionaries master as fetched 2026-09-29
+Based on:   Knuth's plain TeX hyphen.tex and the TUGboat hyphenation exceptions
+            (tb0hyf.tex, Copyright 2007 TeX Users Group)
+SHA-256:    486fb6840b1049d5d252ef784be11cd4dc2be0bf296568b74b41e4f4e17cba7d (.dic)
+            9bcae072bff45cc0333d6b3c508c92d85b9065fc861c743c1506b303eba3f4a1 (README)
+Licence:    "BSD-style" permissive notice, quoted from README_hyph_en_US.txt:
+
+  BSD-style. Unlimited copying, redistribution and modification of this file
+  is permitted with this copyright and license information.
+
+  hyphen.tex:
+  % The Plain TeX hyphenation tables [NOT TO BE CHANGED IN ANY WAY!]
+  % Unlimited copying and redistribution of this file are permitted as long
+  % as this file is not modified. Modifications are permitted, but only if
+  % the resulting file is not named hyphen.tex.
+
+  output of hyphenex.sh:
+  % Hyphenation exceptions for US English, based on hyphenation exception
+  % log articles in TUGboat.
+  %
+  % Copyright 2007 TeX Users Group.
+  % You may freely use, modify and/or distribute this file.
+
+The .dic file itself carries no header (the LibHnj format has none beyond its
+charset line), so README_hyph_en_US.txt travels with it and must not be dropped.
