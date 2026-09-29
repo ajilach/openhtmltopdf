@@ -554,6 +554,13 @@ public class LineBox extends Box implements InlinePaintable {
                 if (result != null && result.isEmpty()) {
                     continue;
                 }
+                /* Start Redacto Change - an inline box holding nothing (an element opened on this line
+                 * whose first word went on to the next) does not end the line's text: look before it,
+                 * so the space in front of the element is trimmed like the space before a plain word. */
+                if (result == null && ((InlineLayoutBox)child).isEmptyOfContent()) {
+                    continue;
+                }
+                /* End Redacto Change */
                 return result;
             } else {
                 return null;

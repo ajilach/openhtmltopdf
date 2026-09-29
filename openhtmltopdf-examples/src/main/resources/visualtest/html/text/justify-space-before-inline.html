@@ -1,0 +1,19 @@
+<html>
+<head>
+<style>
+/* Each paragraph breaks its first line right before an inline element (the word inside is
+   too long for what is left of the line), so the space in front of that element is the last
+   character of the line. Justified, the line must still reach the right edge: the space is
+   removed at the line end as it is before a plain word. */
+@page { size: 300px 300px; margin: 10px; }
+body { margin: 0; font-size: 10px; line-height: 12px; }
+p { margin: 0 0 12px 0; text-align: justify; }
+</style>
+</head>
+<body>
+<p>Alpha alpha alpha alpha alpha alpha <strong>Supercalifragilisticexpialidociousness</strong> alpha alpha alpha alpha alpha alpha alpha alpha alpha.</p>
+<p>Bravo bravo bravo bravo bravo bravo <span lang="en">Supercalifragilisticexpialidociousnesses</span> bravo bravo bravo bravo bravo bravo bravo bravo.</p>
+<p>Charlie charlie charlie charlie charlie <em>Supercalifragilisticexpialidociousness</em> charlie charlie charlie charlie charlie charlie charlie.</p>
+<p>Delta delta delta delta delta delta Supercalifragilisticexpialidociousness delta delta delta delta delta delta delta delta delta.</p>
+</body>
+</html>

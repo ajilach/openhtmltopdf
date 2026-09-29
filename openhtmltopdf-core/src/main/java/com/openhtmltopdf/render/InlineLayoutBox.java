@@ -798,6 +798,11 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
                 if (result != null && result.isEmpty()) {
                     continue;
                 }
+                /* Start Redacto Change - see LineBox#findTrailingText */
+                if (result == null && ((InlineLayoutBox)child).isEmptyOfContent()) {
+                    continue;
+                }
+                /* End Redacto Change */
                 return result;
             } else {
                 return null;
@@ -806,6 +811,31 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
 
         return result;
     }
+
+    /* Start Redacto Change */
+    /**
+     * Whether this box holds no content at all on its line: no text, and nothing but boxes that
+     * hold none either. An element opened at the end of a line whose first word did not fit
+     * leaves such a box behind on that line.
+     */
+    public boolean isEmptyOfContent() {
+        for (int i = 0; i < getInlineChildCount(); i++) {
+            Object child = getInlineChild(i);
+            if (child instanceof InlineText) {
+                if (!((InlineText)child).isEmpty()) {
+                    return false;
+                }
+            } else if (child instanceof InlineLayoutBox) {
+                if (!((InlineLayoutBox)child).isEmptyOfContent()) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    /* End Redacto Change */
 
     public void calculateTextDecoration(LayoutContext c) {
         List<TextDecoration> decorations =

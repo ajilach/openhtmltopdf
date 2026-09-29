@@ -1433,6 +1433,59 @@ public class NonVisualRegressionTest {
         }
     }
 
+    /**
+     * The right edge of the rightmost glyph of each text line on the first page, top to bottom.
+     */
+    private static List<Float> lineRightEdges(PDDocument doc) throws IOException {
+        final java.util.TreeMap<Float, Float> lines = new java.util.TreeMap<>();
+        PDFTextStripper stripper = new PDFTextStripper() {
+            @Override
+            protected void writeString(String text, List<TextPosition> positions) {
+                for (TextPosition tp : positions) {
+                    if (tp.getUnicode().trim().isEmpty()) {
+                        continue;
+                    }
+                    float y = Math.round(tp.getYDirAdj());
+                    float right = tp.getXDirAdj() + tp.getWidthDirAdj();
+                    Float seen = lines.get(y);
+                    lines.put(y, seen == null ? right : Math.max(seen, right));
+                }
+            }
+        };
+        stripper.setStartPage(1);
+        stripper.setEndPage(1);
+        stripper.getText(doc);
+        return new ArrayList<>(lines.values());
+    }
+
+    /**
+     * A justified line that breaks right before an inline element ends at the right edge.
+     *
+     * <p>The space in front of the element is the last character of the line and must be
+     * removed there (css-text-3 section 4.1.3, "a sequence of collapsible spaces at the end of
+     * a line is removed"), as it is before a plain word. When the element's box opened on the
+     * line before its first word moved to the next one, the empty box it leaves at the line end
+     * hid the space from the trimming: the line was justified with the space in it and stopped
+     * one space width short of the edge.
+     */
+    @Test
+    public void testJustifiedLineBeforeInlineElementReachesTheEdge() throws IOException {
+        try (PDDocument doc = run("text/justify-space-before-inline")) {
+            // 300px page, 10px margins: the content box ends at 290px = 217.5pt.
+            float edge = 217.5f;
+            List<Float> rights = lineRightEdges(doc);
+            // Four paragraphs of three lines each; the last line of a paragraph is not justified.
+            assertEquals("unexpected line count: " + rights, 12, rights.size());
+            for (int line = 0; line < rights.size(); line++) {
+                if (line % 3 == 2) {
+                    continue;
+                }
+                assertEquals("line " + (line + 1) + " of " + rights + " does not reach the right edge",
+                        edge, rights.get(line), 0.5f);
+            }
+        }
+    }
+
     // TODO:
     // + More form controls.
     // + Custom meta info.
