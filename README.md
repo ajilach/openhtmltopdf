@@ -47,6 +47,12 @@ in our distributions and in our source tree.
 An exception to this is the pdf-a testing module, which is licensed under the GPL. This module is not distributed to Maven Central
 and is for testing only.
 
+The hyphenation module (`openhtmltopdf-hyphenation`) bundles third-party hyphenation patterns
+that keep their own permissive licences (MIT for German and Spanish, a permissive TeX notice for
+US English). Each file, its source and its notice are listed in
+`openhtmltopdf-hyphenation/src/main/resources/META-INF/THIRD-PARTY-NOTICES.txt`, which also
+ships inside the jar.
+
 Open HTML to PDF uses a couple of FOSS packages to get the job done. A list
 of these can be found in the [dependency graph](https://github.com/danfickle/openhtmltopdf/network/dependencies).
 
