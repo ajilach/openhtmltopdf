@@ -1330,6 +1330,15 @@ public abstract class Box implements Styleable, DisplayListItem {
     }
     
     /**
+     * Is this box the last child of its parent?
+     */
+    public boolean isLastChild() {
+        return getParent() != null &&
+               getParent().getChildCount() > 0 &&
+               getParent().getChild(getParent().getChildCount() - 1) == this;
+    }
+
+    /**
      * Is this box unbreakable in regards to column break opportunities?
      */
     public boolean isTerminalColumnBreak() {

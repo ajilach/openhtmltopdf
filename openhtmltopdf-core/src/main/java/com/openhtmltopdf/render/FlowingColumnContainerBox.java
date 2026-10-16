@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,11 +60,17 @@ public class FlowingColumnContainerBox extends BlockBox {
         private final ColumnBreakOpportunity breakOpportunity;
         private final int absY;
         private final int borderBoxHeight;
+        // Whether the break between the previous opportunity and this one is to be avoided.
+        private boolean avoidBreakBefore;
 
         private BreakMetrics(ColumnBreakOpportunity breakOpportunity, LayoutContext c) {
             this.breakOpportunity = breakOpportunity;
             this.absY = breakOpportunity.box.getAbsY();
             this.borderBoxHeight = breakOpportunity.box.getBorderBoxHeight(c);
+        }
+
+        private int bottom() {
+            return absY + borderBoxHeight;
         }
     }
 
@@ -232,7 +239,114 @@ public class FlowingColumnContainerBox extends BlockBox {
             metrics.add(new BreakMetrics(brk, c));
         }
 
+        for (int i = 1; i < metrics.size(); i++) {
+            metrics.get(i).avoidBreakBefore =
+                    isBreakAvoided(metrics.get(i - 1).breakOpportunity.box, metrics.get(i).breakOpportunity.box);
+        }
+
         return metrics;
+    }
+
+    /**
+     * Whether the break between two adjacent break opportunities is to be avoided.
+     *
+     * <p>The break opportunities are leaves (line boxes and empty blocks), but break-after and
+     * break-before are set on the blocks around them. Per css-break-3 section 4.1 (and the
+     * propagation rule of section 3.1), the break point between two siblings is also the break
+     * point after the last child of the first and before the first child of the second, at any
+     * depth, and the values of all of those boxes apply to it. So the break between {@code before}
+     * and {@code after} is avoided if {@code break-after: avoid} (or {@code avoid-column}, or
+     * {@code page-break-after: avoid}) is set on {@code before}'s block or on any ancestor that
+     * {@code before} ends, up to the nearest common ancestor; and the same for break-before on
+     * {@code after}'s side. A heading that is the only child of a wrapper is thereby kept with
+     * the first line of whatever follows the wrapper.
+     *
+     * <p>Line boxes carry no break properties of their own and are skipped. Only the last line of a
+     * block ends that block, so break-after never affects the break between two lines of the same
+     * block; {@code break-inside: avoid} (or {@code avoid-column}) on a box that contains both sides
+     * does, so a heading of two lines is not split either.
+     */
+    private static boolean isBreakAvoided(Box before, Box after) {
+        Map<Box, Boolean> afterChain = new IdentityHashMap<>();
+        for (Box x = after; x != null; x = x.getParent()) {
+            afterChain.put(x, Boolean.TRUE);
+        }
+
+        Box common = before;
+        while (common != null && !afterChain.containsKey(common)) {
+            common = common.getParent();
+        }
+
+        for (Box x = before; x != null && x != common; x = x.getParent()) {
+            if (!(x instanceof LineBox) && x.getStyle() != null && x.getStyle().isAvoidColumnBreakAfter()) {
+                return true;
+            }
+            if (!x.isLastChild()) {
+                break;
+            }
+        }
+
+        for (Box x = after; x != null && x != common; x = x.getParent()) {
+            if (!(x instanceof LineBox) && x.getStyle() != null && x.getStyle().isAvoidColumnBreakBefore()) {
+                return true;
+            }
+            if (!x.isFirstChild()) {
+                break;
+            }
+        }
+
+        // The break lies inside every box that contains both sides, up to the multi-column box.
+        for (Box x = common; x != null && !(x instanceof FlowingColumnBox); x = x.getParent()) {
+            if (!(x instanceof LineBox) && x.getStyle() != null && x.getStyle().isAvoidColumnBreakInside()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean isForcedBreak(BreakMetrics br, BreakMetrics next) {
+        return br.breakOpportunity.box.getStyle().isColumnBreakAfter() ||
+               next.breakOpportunity.box.getStyle().isColumnBreakBefore();
+    }
+
+    /**
+     * Whether the column ends after break opportunity {@code i}, so that {@code i + 1} starts the
+     * next column.
+     *
+     * <p>A forced break always ends it. Otherwise the column ends where the content no longer
+     * fits, but never between two opportunities whose break is to be avoided: the opportunities
+     * linked that way go to a column together, so the test before {@code i + 1} is whether the
+     * whole group starting there still fits. Avoiding a break is a preference and never makes
+     * content overflow: a group taller than the column is not moved as a unit, and an avoided break
+     * is still taken when the next opportunity itself does not fit.
+     */
+    private static boolean endsColumnAfter(List<BreakMetrics> breaks, int i, int yAdjust, int pasteY, int maxColHeight) {
+        BreakMetrics br = breaks.get(i);
+        BreakMetrics next = breaks.get(i + 1);
+
+        if (isForcedBreak(br, next)) {
+            return true;
+        }
+
+        int nextHeight = next.bottom() + yAdjust - pasteY;
+        if (next.avoidBreakBefore || nextHeight > maxColHeight) {
+            return nextHeight > maxColHeight;
+        }
+
+        int last = i + 1;
+        while (last + 1 < breaks.size() &&
+               breaks.get(last + 1).avoidBreakBefore &&
+               !isForcedBreak(breaks.get(last), breaks.get(last + 1))) {
+            last++;
+        }
+
+        BreakMetrics groupEnd = breaks.get(last);
+        if (groupEnd.bottom() - next.absY > maxColHeight) {
+            return false;
+        }
+
+        return groupEnd.bottom() + yAdjust - pasteY > maxColHeight;
     }
 
     private LayoutRun simulateColumnLayout(LayoutContext c, List<BreakMetrics> breaks, int columnCount, BalanceTarget balance, boolean allowPageAdd) {
@@ -254,11 +368,7 @@ public class FlowingColumnContainerBox extends BlockBox {
             finalHeight = Math.max((yProposedFinal + br.borderBoxHeight) - startY, finalHeight);
 
             if (next != null) {
-                int nextYHeight = next.absY + yAdjust + next.borderBoxHeight - pasteY;
-
-                if (nextYHeight > maxColHeight ||
-                    br.breakOpportunity.box.getStyle().isColumnBreakAfter() ||
-                    next.breakOpportunity.box.getStyle().isColumnBreakBefore()) {
+                if (endsColumnAfter(breaks, i, yAdjust, pasteY, maxColHeight)) {
                     int newColIdx = colIdx + 1;
                     boolean needNewPage = newColIdx % columnCount == 0;
                     int newPageIdx = needNewPage ? pageIdx + 1 : pageIdx;
@@ -398,11 +508,7 @@ public class FlowingColumnContainerBox extends BlockBox {
             refreshMovedBox(ch);
 
             if (next != null) {
-                int nextYHeight = next.absY + yAdjust + next.borderBoxHeight - current.pasteY;
-
-                if (nextYHeight > current.maxColHeight ||
-                    ch.getStyle().isColumnBreakAfter() ||
-                    next.breakOpportunity.box.getStyle().isColumnBreakBefore()) {
+                if (endsColumnAfter(breaks, i, yAdjust, current.pasteY, current.maxColHeight)) {
                     int newColIdx = colIdx + 1;
                     boolean needNewPage = newColIdx % columnCount == 0;
                     int newPageIdx = needNewPage ? current.pageIdx + 1 : current.pageIdx;

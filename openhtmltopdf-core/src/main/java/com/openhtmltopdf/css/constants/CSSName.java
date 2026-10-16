@@ -984,6 +984,19 @@ public final class CSSName implements Comparable<CSSName> {
             );
 
     /**
+     * css-break-3 break-inside: auto | avoid | avoid-column. Not inherited, unlike the legacy
+     * page-break-inside as this engine implements it. Honoured by the column splitter only.
+     */
+    public final static CSSName BREAK_INSIDE =
+            addProperty(
+                    "break-inside",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BreakInside()
+            );
+
+    /**
      * Unique CSSName instance for CSS2 property.
      */
     public final static CSSName POSITION =

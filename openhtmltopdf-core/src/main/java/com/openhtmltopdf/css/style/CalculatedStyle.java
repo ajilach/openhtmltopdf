@@ -1109,6 +1109,38 @@ public class CalculatedStyle {
         return isIdent(CSSName.BREAK_AFTER, IdentValue.COLUMN);
     }
 
+    /**
+     * Whether a column break right before this box is to be avoided: {@code break-before: avoid}
+     * or {@code avoid-column}, or the legacy {@code page-break-before: avoid}, which css-break-3
+     * section 3.1 maps to {@code break-before: avoid} -- and that avoids every kind of break,
+     * a column break included.
+     */
+    public boolean isAvoidColumnBreakBefore() {
+        return isIdent(CSSName.BREAK_BEFORE, IdentValue.AVOID) ||
+               isIdent(CSSName.BREAK_BEFORE, IdentValue.AVOID_COLUMN) ||
+               isIdent(CSSName.PAGE_BREAK_BEFORE, IdentValue.AVOID);
+    }
+
+    /**
+     * Whether a column break right after this box is to be avoided; see
+     * {@link #isAvoidColumnBreakBefore()}.
+     */
+    public boolean isAvoidColumnBreakAfter() {
+        return isIdent(CSSName.BREAK_AFTER, IdentValue.AVOID) ||
+               isIdent(CSSName.BREAK_AFTER, IdentValue.AVOID_COLUMN) ||
+               isIdent(CSSName.PAGE_BREAK_AFTER, IdentValue.AVOID);
+    }
+
+    /**
+     * Whether a column break inside this box is to be avoided: {@code break-inside: avoid} or
+     * {@code avoid-column}. The legacy {@code page-break-inside} is not consulted here, because
+     * this engine lets it inherit and so it would bind every descendant as well.
+     */
+    public boolean isAvoidColumnBreakInside() {
+        return isIdent(CSSName.BREAK_INSIDE, IdentValue.AVOID) ||
+               isIdent(CSSName.BREAK_INSIDE, IdentValue.AVOID_COLUMN);
+    }
+
     public boolean isAvoidPageBreakInside() {
         return isIdent(CSSName.PAGE_BREAK_INSIDE, IdentValue.AVOID);
     }

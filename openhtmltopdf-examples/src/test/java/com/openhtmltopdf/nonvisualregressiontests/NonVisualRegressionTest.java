@@ -1433,6 +1433,132 @@ public class NonVisualRegressionTest {
         }
     }
 
+    /** Where a text run starts: page (0-based), x and y of its first glyph. */
+    private static class TextAt {
+        private final int page;
+        private final float x;
+        private final float y;
+
+        private TextAt(int page, float x, float y) {
+            this.page = page;
+            this.x = x;
+            this.y = y;
+        }
+
+        /** A 300px (225pt) page, 10px margins, 20px gutter: the right column starts at 120pt. */
+        private boolean inRightColumn() {
+            return x >= 110;
+        }
+    }
+
+    /** The position of the first text run on any page that starts with {@code prefix}. */
+    private static TextAt findText(PDDocument doc, final String prefix) throws IOException {
+        final TextAt[] found = { null };
+        for (int i = 0; i < doc.getNumberOfPages() && found[0] == null; i++) {
+            final int page = i;
+            PDFTextStripper stripper = new PDFTextStripper() {
+                @Override
+                protected void writeString(String text, List<TextPosition> positions) {
+                    if (found[0] == null && text.startsWith(prefix) && !positions.isEmpty()) {
+                        found[0] = new TextAt(page, positions.get(0).getX(), positions.get(0).getY());
+                    }
+                }
+            };
+            stripper.setStartPage(i + 1);
+            stripper.setEndPage(i + 1);
+            stripper.getText(doc);
+        }
+        assertTrue("no text starting with '" + prefix + "'", found[0] != null);
+        return found[0];
+    }
+
+    /**
+     * Without a break rule the fixture strands its heading: it is the last line of the first
+     * column and its text starts the second. This is the case the next tests change, and it shows
+     * that a document without break-after/break-inside: avoid lays out as before.
+     */
+    @Test
+    public void testColumnsKeepHeadingControlStrandsTheHeading() throws IOException {
+        try (PDDocument doc = run("text/columns-keep-heading-control")) {
+            TextAt heading = findText(doc, "Heading");
+            TextAt text = findText(doc, "Text 1");
+            assertEquals(1, doc.getNumberOfPages());
+            assertTrue("the heading should sit in the left column", !heading.inRightColumn());
+            assertTrue("the text should start the right column", text.inRightColumn());
+        }
+    }
+
+    /**
+     * break-after: avoid on a heading that is the only child of its wrapper applies to the
+     * wrapper's break as well (css-break-3 section 3.1, propagation from the last child), so inside
+     * a multi-column box the heading moves to the next column with the first line of its text.
+     */
+    @Test
+    public void testColumnsKeepHeadingWithNextThroughItsWrapper() throws IOException {
+        try (PDDocument doc = run("text/columns-keep-heading")) {
+            TextAt heading = findText(doc, "Heading");
+            TextAt text = findText(doc, "Text 1");
+            TextAt filler = findText(doc, "Filler 1");
+            assertEquals(1, doc.getNumberOfPages());
+            assertTrue("the heading should have moved to the right column", heading.inRightColumn());
+            assertTrue("the heading should start the right column", Math.abs(heading.y - filler.y) < 1);
+            assertTrue("the text should follow the heading in the same column",
+                    text.inRightColumn() && text.y > heading.y);
+        }
+    }
+
+    /**
+     * page-break-after: avoid is the legacy alias of break-after: avoid (css-break-3 section 3.1)
+     * and so avoids a column break too; here heading and text are siblings.
+     */
+    @Test
+    public void testColumnsKeepHeadingWithNextLegacyProperty() throws IOException {
+        try (PDDocument doc = run("text/columns-keep-heading-legacy")) {
+            TextAt heading = findText(doc, "Heading");
+            TextAt text = findText(doc, "Text 1");
+            assertTrue("the heading should have moved to the right column", heading.inRightColumn());
+            assertTrue("the text should follow the heading in the same column",
+                    text.inRightColumn() && text.y > heading.y);
+        }
+    }
+
+    /**
+     * A two-line heading at the column foot: break-inside: avoid keeps both lines in one column,
+     * break-after: avoid keeps them with the text, so the whole group starts the next column.
+     */
+    @Test
+    public void testColumnsKeepTwoLineHeadingTogether() throws IOException {
+        try (PDDocument doc = run("text/columns-keep-heading-inside")) {
+            TextAt first = findText(doc, "Heading");
+            TextAt second = findText(doc, "Second");
+            TextAt text = findText(doc, "Text 1");
+            assertTrue("the heading's first line should have moved to the right column", first.inRightColumn());
+            assertTrue("the heading's second line should follow it", second.inRightColumn() && second.y > first.y);
+            assertTrue("the text should follow the heading", text.inRightColumn() && text.y > second.y);
+        }
+    }
+
+    /**
+     * Avoiding a break is a preference. When every block avoids the break after it, the group is
+     * taller than a column and is not moved as a unit: the columns fill as without the rule and
+     * nothing runs past the page box.
+     */
+    @Test
+    public void testColumnsAvoidedBreakNeverOverflows() throws IOException {
+        try (PDDocument doc = run("text/columns-keep-heading-oversize")) {
+            assertEquals(1, doc.getNumberOfPages());
+            // In points: the page is 300px = 225pt, its margin 10px = 7.5pt, a line 12px = 9pt.
+            float pageBottom = doc.getPage(0).getMediaBox().getHeight() - 7.5f;
+            float left = columnBottom(doc, 0, 0, 110);
+            float right = columnBottom(doc, 0, 110, 225);
+            assertTrue("the left column runs past the page box", left <= pageBottom);
+            assertTrue("the left column should be full", pageBottom - left < 9);
+            assertTrue("the right column should carry the rest", right > 0 && right <= pageBottom);
+            assertTrue("Filler 17 should start the right column", findText(doc, "Filler 17").inRightColumn());
+            assertTrue("Filler 16 should end the left column", !findText(doc, "Filler 16").inRightColumn());
+        }
+    }
+
     /**
      * The right edge of the rightmost glyph of each text line on the first page, top to bottom.
      */

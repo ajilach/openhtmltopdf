@@ -258,6 +258,7 @@ public class IdentValue implements FSDerivedValue {
      * Column break. 
      */
     public static final IdentValue COLUMN = addValue("column");
+    public static final IdentValue AVOID_COLUMN = addValue("avoid-column");
 
     /**
      * CSS footnotes for use in float: footnote

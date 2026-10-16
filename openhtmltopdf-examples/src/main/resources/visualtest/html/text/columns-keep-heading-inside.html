@@ -1,0 +1,43 @@
+<html>
+<head>
+<style>
+/* A heading of two lines at the column foot: break-inside: avoid keeps its lines together, break-after: avoid keeps it with the text. */
+@page { size: 300px 220px; margin: 10px; }
+body { margin: 0; font-size: 10px; line-height: 12px; }
+.cols { column-count: 2; column-gap: 20px; column-fill: auto; }
+div, p, h2 { margin: 0; }
+.cols > div { white-space: nowrap; }
+h2 { font-size: 10px; }
+h2 { break-after: avoid; break-inside: avoid; }
+</style>
+</head>
+<body>
+<div class="cols">
+<div>Filler 1</div>
+<div>Filler 2</div>
+<div>Filler 3</div>
+<div>Filler 4</div>
+<div>Filler 5</div>
+<div>Filler 6</div>
+<div>Filler 7</div>
+<div>Filler 8</div>
+<div>Filler 9</div>
+<div>Filler 10</div>
+<div>Filler 11</div>
+<div>Filler 12</div>
+<div>Filler 13</div>
+<div>Filler 14</div>
+<div class="wrap"><h2>Heading<br/>Second</h2></div>
+<div class="wrap">
+<p>Text 1</p>
+<p>Text 2</p>
+<p>Text 3</p>
+<p>Text 4</p>
+<p>Text 5</p>
+<p>Text 6</p>
+<p>Text 7</p>
+<p>Text 8</p>
+</div>
+</div>
+</body>
+</html>

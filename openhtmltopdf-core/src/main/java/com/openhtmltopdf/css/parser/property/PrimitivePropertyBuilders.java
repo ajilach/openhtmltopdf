@@ -1154,7 +1154,8 @@ public class PrimitivePropertyBuilders {
     
     public static class BreakBefore extends SingleIdent {
         private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.AUTO, IdentValue.COLUMN });
+                new IdentValue[] { IdentValue.AUTO, IdentValue.COLUMN,
+                                   IdentValue.AVOID, IdentValue.AVOID_COLUMN });
         
         @Override
         protected BitSet getAllowed() {
@@ -1164,7 +1165,8 @@ public class PrimitivePropertyBuilders {
 
     public static class BreakAfter extends SingleIdent {
         private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.AUTO, IdentValue.COLUMN });
+                new IdentValue[] { IdentValue.AUTO, IdentValue.COLUMN,
+                                   IdentValue.AVOID, IdentValue.AVOID_COLUMN });
         
         @Override
         protected BitSet getAllowed() {
@@ -1172,6 +1174,16 @@ public class PrimitivePropertyBuilders {
         }
     }
     
+    public static class BreakInside extends SingleIdent {
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.AVOID, IdentValue.AVOID_COLUMN });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class Page extends AbstractPropertyBuilder {
         @Override
         public List<PropertyDeclaration> buildDeclarations(

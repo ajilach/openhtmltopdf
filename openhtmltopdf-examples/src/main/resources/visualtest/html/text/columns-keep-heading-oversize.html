@@ -1,0 +1,48 @@
+<html>
+<head>
+<style>
+/* Every block avoids the break after it, so the whole flow is one group taller than a column: avoiding is a preference, the content still fills both columns and nothing overflows the page. */
+@page { size: 300px 220px; margin: 10px; }
+body { margin: 0; font-size: 10px; line-height: 12px; }
+.cols { column-count: 2; column-gap: 20px; column-fill: auto; }
+div, p, h2 { margin: 0; }
+.cols > div { white-space: nowrap; }
+h2 { font-size: 10px; }
+div { break-after: avoid; }
+</style>
+</head>
+<body>
+<div class="cols">
+<div>Filler 1</div>
+<div>Filler 2</div>
+<div>Filler 3</div>
+<div>Filler 4</div>
+<div>Filler 5</div>
+<div>Filler 6</div>
+<div>Filler 7</div>
+<div>Filler 8</div>
+<div>Filler 9</div>
+<div>Filler 10</div>
+<div>Filler 11</div>
+<div>Filler 12</div>
+<div>Filler 13</div>
+<div>Filler 14</div>
+<div>Filler 15</div>
+<div>Filler 16</div>
+<div>Filler 17</div>
+<div>Filler 18</div>
+<div>Filler 19</div>
+<div>Filler 20</div>
+<div>Filler 21</div>
+<div>Filler 22</div>
+<div>Filler 23</div>
+<div>Filler 24</div>
+<div>Filler 25</div>
+<div>Filler 26</div>
+<div>Filler 27</div>
+<div>Filler 28</div>
+<div>Filler 29</div>
+<div>Filler 30</div>
+</div>
+</body>
+</html>
